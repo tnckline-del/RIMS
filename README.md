@@ -175,7 +175,7 @@ Every artifact is:
 - Complete
 - Tested
 - Documented
-- y for Git commit
+- Ready for Git commit
 
 ---
 
