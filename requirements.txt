@@ -1,1 +1,7 @@
+# RIMS Runtime Dependencies
+# Python 3.12+
 
+numpy>=2.0,<3.0
+pandas>=2.2,<3.0
+openpyxl>=3.1,<4.0
+python-dateutil>=2.9,<3.0
