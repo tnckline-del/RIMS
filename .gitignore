@@ -216,3 +216,21 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# RIMS project data
+data/imports/
+data/snapshots/
+data/archive/
+output/
+
+# Local configuration
+config.local.py
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.tmp
+*.bak
