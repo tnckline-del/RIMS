@@ -19,7 +19,7 @@ This change log provides the corresponding development history.
 
 **Status:** Complete
 
-**Objective:**  
+**Objective:**
 Establish the RIMS project definition, purpose, scope, and development direction.
 
 **Completed:**
@@ -294,9 +294,46 @@ Sprint numbers will not be reused or skipped.
 
 ---
 
+## Sprint 12 — Historical Portfolio Snapshot
+
+**Status:** Complete
+
+**Objective:**
+Create the first version of historical portfolio snapshot capability.
+
+**Files Added:**
+- `src/snapshot.py`
+
+**Implementation:**
+- Added `Snapshot` dataclass for point-in-time portfolio history.
+- Snapshot captures portfolio metrics at a specific date.
+- Captures securities market value separately from cash market value.
+- Calculates total portfolio market value including cash.
+- Captures cost basis, gain/loss, forward annual dividend income, portfolio yield, and income yield on cost.
+- Preserves individual holding information.
+- Uses independent copies of holdings so subsequent changes to the live Portfolio do not alter the historical Snapshot.
+- Added dictionary serialization through `to_dict()`.
+
+**Testing:**
+- Snapshot module import test passed.
+- Snapshot creation test passed.
+- Financial metric validation passed.
+- Cash handling validated.
+- Snapshot independence from live Portfolio validated.
+- Individual holding preservation validated.
+- Dictionary serialization validated.
+- Existing Schwab import and reconciliation regression test passed.
+
+**Acceptance:**
+- Historical Snapshot capability implemented and tested.
+- Existing RIMS functionality remains operational.
+- Schwab market value and cost basis reconciliation remain exact.
+
+**Result:**
+Sprint 12 complete. Historical portfolio snapshot capability is ready for subsequent integration and historical analysis work.
+
 ## Upcoming Development
 
-### Sprint 12 — Historical Portfolio Snapshot
 
 **Planned objective:**  
 Establish the RIMS historical snapshot capability so portfolio values, holdings, income, and other important metrics can be preserved at specific points in time.
