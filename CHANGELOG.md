@@ -1,190 +1,315 @@
 # RIMS Change Log
 
-All notable changes to the Retirement Income Management System (RIMS) are documented in this file.
+All significant RIMS development work is organized by numbered sprint.
 
-RIMS follows a structured release process. Changes are grouped by release and sprint.
+Each sprint represents a controlled development increment and includes:
+
+- Objective
+- Files changed
+- Implementation
+- Testing
+- Completion status
+
+The Git repository is the authoritative source for the current implementation.
+This change log provides the corresponding development history.
 
 ---
 
-## [Unreleased]
-
-### Planned
-
-Future development work will be documented here until assigned to a specific release.
-
----
-
-# Release 0.2 — Core Framework
-
-**Status:** In Development
-
-**Objective:** Establish the foundational project structure, development standards, configuration framework, and core application architecture.
-
-### Sprint 1 — Project Introduction
+## Sprint 1 — Project Definition
 
 **Status:** Complete
 
-Created the initial project documentation and established RIMS as a professional software development project.
+**Objective:**  
+Establish the RIMS project definition, purpose, scope, and development direction.
 
-Deliverables:
-
-- `README.md`
-- Initial project description
-- Development environment definition
-- Technology stack definition
-- High-level architecture
-- Git/GitHub development process
+**Completed:**
+- Defined Retirement Income Management System (RIMS).
+- Established retirement-income management as the primary objective.
+- Defined capital preservation as a secondary objective.
+- Established a long-term investment horizon.
+- Established the initial system-development approach.
 
 ---
 
-### Sprint 2 — Project Definition
+## Sprint 2 — Project Architecture
 
 **Status:** Complete
 
-Created the formal project definition and established the long-term product vision.
+**Objective:**  
+Define the initial RIMS architecture, project structure, core entities, and system-of-record philosophy.
 
-Deliverable:
-
-- `PROJECT.md`
-
-Key elements established:
-
-- Project mission
-- Product vision
-- Primary objective
-- Success criteria
-- Investment philosophy
-- Design principles
-- Data model
-- Development methodology
-- Coding standards
-- Product backlog
-- Release philosophy
-- Long-term product vision
+**Completed:**
+- Defined the RIMS project structure.
+- Established core entities:
+  - Portfolio
+  - Holding
+  - Snapshot
+  - Configuration
+  - Workbook
+  - Watch List
+  - Report
+- Established Schwab as the system of record for holdings, market values, cost basis, and transactions.
+- Established RIMS as the system of record for derived analysis, goals, notes, watch status, and historical analysis.
+- Established configuration-driven business rules.
+- Established the principle that historical data must never be overwritten.
 
 ---
 
-### Sprint 3 — Change Management
+## Sprint 3 — Change Management
 
 **Status:** Complete
 
-Created the formal change-management record for RIMS.
+**Objective:**  
+Establish formal project change tracking and version history.
 
-Deliverable:
-
-- `CHANGELOG.md`
-
-Established:
-
-- Release tracking
-- Sprint tracking
-- Historical change documentation
-- Planned versus completed work
-- Structured software-version history
+**Completed:**
+- Created `CHANGELOG.md`.
+- Established version/change tracking.
+- Established the practice of documenting significant development changes.
 
 ---
 
-### Sprint 4 — Git Configuration
+## Sprint 4 — Repository Configuration
 
-**Status:** Planned
+**Status:** Complete
 
-Create the repository `.gitignore` file to prevent temporary files, Python-generated files, virtual environments, operating-system files, and other non-source artifacts from being committed to Git.
+**Objective:**  
+Establish repository hygiene and protect local/project data from accidental Git commits.
 
----
+**Files changed:**
+- `.gitignore`
 
-### Sprint 5 — Python Dependencies
-
-**Status:** Planned
-
-Create `requirements.txt` defining the Python packages required by RIMS.
-
----
-
-### Sprint 6 — Application Build Framework
-
-**Status:** Planned
-
-Create the initial application build framework that will provide the foundation for executing RIMS.
+**Completed:**
+- Added RIMS data directories to Git exclusions.
+- Added local configuration exclusions.
+- Added macOS system-file exclusions.
+- Added temporary-file exclusions.
 
 ---
 
-# Future Releases
+## Sprint 5 — Runtime Dependencies
 
-## Release 1.x — Retirement Income Management System
+**Status:** Complete
 
-The first production-oriented release will establish the complete core RIMS application.
+**Objective:**  
+Define the initial Python runtime dependencies.
 
-Expected capabilities include:
+**Files changed:**
+- `requirements.txt`
 
-- Schwab data import
-- Portfolio management
-- Holding analysis
-- Forward annual dividend income
-- Portfolio income analysis
-- Dividend tracking
-- Income concentration analysis
-- Watch List management
-- Historical snapshots
-- Workbook generation
-- Portfolio Dashboard
-- Advisor review support
+**Completed:**
+- Established Python 3.12+ requirement.
+- Added NumPy.
+- Added pandas.
+- Added openpyxl.
+- Added python-dateutil.
+- Established bounded dependency versions.
 
 ---
 
-## Release 2.x — Advanced Portfolio Analytics
+## Sprint 6 — Build Entry Point
 
-Future analytical capabilities may include:
+**Status:** Complete
 
-- Portfolio Health Score
-- Income Stress Testing
-- Retirement Forecasting
-- Dividend sustainability analysis
-- Advanced income-risk analysis
-- Scenario analysis
-- Portfolio optimization analysis
+**Objective:**  
+Create the initial RIMS build/runtime entry point.
 
----
+**Files changed:**
+- `build_rims.py`
 
-## Release 3.x — Retirement Income Decision Support System
-
-The long-term vision is to evolve RIMS into a comprehensive retirement-income decision-support system.
-
-Potential capabilities include:
-
-- AI-assisted portfolio review
-- Advisor Scorecard
-- Investment Research
-- Opportunity identification
-- Replacement analysis
-- Tax-aware income planning
-- RMD planning
-- Roth conversion analysis
-- Integrated retirement-income forecasting
-
-These capabilities will not be implemented until the core RIMS architecture is stable.
+**Completed:**
+- Added RIMS version reporting.
+- Added Python version reporting.
+- Added project-root identification.
+- Added basic build-status reporting.
+- Verified successful execution under Python 3.14.6.
 
 ---
 
-# Change Management Principles
+## Sprint 7 — Application Package
 
-RIMS development follows these principles:
+**Status:** Complete
 
-1. Each sprint produces one complete artifact.
-2. Completed work is committed to Git.
-3. Releases are versioned.
-4. Historical changes are never removed from this file.
-5. Major architectural changes require documentation.
-6. New capabilities are added through the planned release process.
-7. Production quality is required before a release is considered complete.
+**Objective:**  
+Establish the RIMS Python application package.
+
+**Files changed:**
+- `src/__init__.py`
+
+**Completed:**
+- Defined the `src` package.
+- Added package-level version metadata.
+- Established RIMS version 0.2.0.
 
 ---
 
-# Version History
+## Sprint 8 — Holding Entity
 
-| Version | Status | Description |
-|---|---|---|
-| 0.1 | Complete | Architecture definition |
-| 0.2 | In Development | Core framework |
-| 1.0 | Planned | Initial production RIMS |
-| 2.0 | Planned | Advanced portfolio analytics |
-| 3.0 | Planned | Retirement Income Decision Support System |
+**Status:** Complete
+
+**Objective:**  
+Create the core RIMS Holding entity.
+
+**Files changed:**
+- `src/holding.py`
+
+**Completed:**
+- Added Holding data model.
+- Added shares, price, cost basis, dividend, and classification fields.
+- Added market-value calculation.
+- Added gain/loss calculation.
+- Added gain/loss percentage.
+- Added forward annual dividend income.
+- Added portfolio yield.
+- Added income yield on cost.
+- Added price and dividend update methods.
+- Added dictionary serialization.
+- Established forward annual dividend income as the primary income metric.
+
+---
+
+## Sprint 9 — Portfolio Entity
+
+**Status:** Complete
+
+**Objective:**  
+Create the RIMS Portfolio aggregation layer.
+
+**Files changed:**
+- `src/portfolio.py`
+
+**Completed:**
+- Added portfolio holding management.
+- Added duplicate-symbol validation.
+- Added portfolio market value.
+- Added portfolio cost basis.
+- Added total gain/loss.
+- Added forward annual dividend income.
+- Added portfolio yield.
+- Added income yield on cost.
+- Added position-weight calculations.
+- Added income-contribution calculations.
+- Added portfolio serialization.
+
+**Testing:**
+- Verified portfolio aggregation using test Holdings.
+- Verified market value, cost basis, gain/loss, income, yield, position weight, and income contribution.
+
+---
+
+## Sprint 10 — Schwab CSV Import and Reconciliation
+
+**Status:** Complete
+
+**Objective:**  
+Import Schwab position data into RIMS and reconcile the imported portfolio against Schwab.
+
+**Files changed:**
+- `src/importer.py`
+
+**Completed:**
+- Added Schwab CSV parsing.
+- Added support for multiple Schwab account sections.
+- Added security-row identification.
+- Added cash-row identification.
+- Added summary-row handling.
+- Added Schwab date parsing.
+- Added Schwab numeric-value parsing.
+- Added duplicate-symbol consolidation.
+- Added Schwab market-value totals.
+- Added Schwab cost-basis totals.
+- Added reconciliation status.
+- Added market-value and cost-basis differences.
+- Added reconciliation tolerance.
+
+**Validation:**
+- 45 securities imported.
+- Schwab securities value: $754,211.09.
+- Schwab cash: $45,016.45.
+- Schwab total value: $799,227.54.
+- Cost basis reconciled to $793,924.63.
+- Forward annual dividend income: $53,581.31.
+- Portfolio yield: 7.10%.
+- Reconciliation status: RECONCILED.
+
+---
+
+## Sprint 11 — Authoritative Schwab Market Values
+
+**Status:** Complete
+
+**Objective:**  
+Make Schwab's reported market value authoritative within RIMS while retaining calculated market value for validation and fallback purposes.
+
+**Files changed:**
+- `src/holding.py`
+- `src/importer.py`
+
+**Completed:**
+- Added authoritative `market_value` support to Holding.
+- Retained calculated market value as `shares × price`.
+- Added `calculated_market_value` for comparison and validation.
+- Added market-value update capability.
+- Preserved calculated market-value fallback for manually created Holdings.
+- Updated Schwab importer to pass Schwab market value into Holding.
+- Updated duplicate-security consolidation to sum authoritative market values.
+- Corrected Schwab cash and summary-row classification.
+
+**Validation:**
+- Holding fallback test: PASS.
+- Authoritative market-value test: PASS.
+- Schwab import regression test: PASS.
+- 45 securities imported.
+- RIMS securities value: $754,211.09.
+- Schwab securities value: $754,211.09.
+- Schwab cash: $45,016.45.
+- Schwab total value: $799,227.54.
+- Cost basis difference: $0.00.
+- Market value difference: $0.00.
+- Forward annual dividend income: $53,581.31.
+- Portfolio yield: 7.10%.
+- Reconciliation status: RECONCILED.
+- EMHY multi-account consolidation verified:
+  - 497 shares.
+  - $19,125.50 cost basis.
+  - $20,210.51 authoritative market value.
+  - $1,322.4673 forward annual dividend income.
+
+---
+
+## Development Rules Going Forward
+
+Every future development increment will be assigned a sequential sprint number.
+
+Each sprint will:
+
+1. Have a clearly defined objective.
+2. Identify the files changed.
+3. Be tested before completion.
+4. Be committed to Git.
+5. Be pushed to GitHub.
+6. Be recorded in this change log.
+
+Sprint numbers will not be reused or skipped.
+
+---
+
+## Upcoming Development
+
+### Sprint 12 — Historical Portfolio Snapshot
+
+**Planned objective:**  
+Establish the RIMS historical snapshot capability so portfolio values, holdings, income, and other important metrics can be preserved at specific points in time.
+
+Planned capabilities include:
+
+- Point-in-time portfolio snapshots.
+- Preservation of historical holdings.
+- Historical market value.
+- Historical cost basis.
+- Historical forward annual dividend income.
+- Historical portfolio yield.
+- Snapshot dates.
+- Comparison of current and historical portfolio states.
+
+The detailed Sprint 12 scope will be defined before implementation begins.

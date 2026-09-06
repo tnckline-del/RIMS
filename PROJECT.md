@@ -200,15 +200,32 @@ These entities shall evolve independently.
 
 # Development Methodology
 
-Development follows iterative releases.
+Development follows a controlled, iterative sprint process.
 
-Each sprint produces one complete artifact.
+Each development increment is assigned a sequential sprint number.
+
+Each sprint shall have:
+
+- A clearly defined objective.
+- Defined scope.
+- Identified files or components affected.
+- A complete implementation.
+- Defined testing and acceptance criteria.
+- Verification before completion.
+- Documentation of the completed work.
+- A Git commit and push to the repository.
+
+Each sprint should produce one complete, usable artifact or a complete increment toward the current release.
 
 No placeholders.
 
 No incomplete implementations.
 
-Every release shall be usable.
+Work shall not be considered complete until the defined acceptance criteria have been satisfied.
+
+Sprint numbers are sequential and permanent.
+
+A completed sprint number shall not be reused.
 
 ---
 
@@ -233,13 +250,19 @@ Backlog items are intentionally excluded until the core system is complete.
 
 # Release Philosophy
 
-A release is considered complete when:
+A sprint is considered complete when:
 
-- Code compiles.
+- Code executes successfully.
 - Tests pass.
-- Documentation is complete.
 - Acceptance criteria are satisfied.
-- Git commit completed.
+- Documentation is complete.
+- Changes are committed to Git.
+- Changes are pushed to GitHub.
+- The working tree is clean.
+
+A release is considered complete when all sprints required for that release have been completed and the release acceptance criteria have been satisfied.
+
+The Git repository is the authoritative source for the current implementation.
 
 ---
 
@@ -285,9 +308,27 @@ Author
 
 # Change Management
 
-Changes are introduced only through scheduled releases.
+Changes are introduced through the controlled sprint and release process.
+
+Every significant development increment receives a sequential sprint number.
+
+Each completed sprint shall be recorded in `CHANGELOG.md`.
+
+Sprint documentation shall identify:
+
+- Sprint number.
+- Objective.
+- Files changed.
+- Implementation.
+- Testing.
+- Acceptance result.
+- Completion status.
 
 Completed work should remain stable unless improvement is justified.
+
+Changes to completed functionality should be treated as new development work and assigned to a subsequent sprint when appropriate.
+
+Sprint numbers shall not be skipped, reused, or reassigned.
 
 ---
 
