@@ -425,6 +425,51 @@ All Sprint 14 acceptance criteria satisfied.
 
 **Git:**
 Code and documentation ready for commit and push.
+
+## Sprint 15 — Historical Snapshot Reporting
+
+**Status:** Complete
+
+**Objective:**
+Create the first RIMS human-readable reporting capability built on the historical snapshot comparison engine.
+
+**Implementation:**
+- Added `src/snapshot_report.py`.
+- Added human-readable portfolio comparison reporting.
+- Added portfolio market-value, securities-value, cash, cost-basis, gain/loss, and holding-count reporting.
+- Added prominent forward annual dividend income reporting.
+- Added portfolio yield and income yield on cost reporting.
+- Reported yield changes as percentage-point changes.
+- Added common, added, and removed holding reporting.
+- Added holding-level changes for shares, market value, cost basis, gain/loss, and forward annual dividend income.
+- Added identification of the largest positive and negative changes in forward annual dividend income.
+- Preserved the distinction between market-value change and investment performance.
+- Excluded total-return and investment-performance calculations because transaction history is not yet integrated.
+- Corrected percentage formatting to match the RIMS percentage representation used by the existing Snapshot and Portfolio models.
+
+**Testing:**
+- SnapshotReport module import test passed.
+- Normal portfolio comparison report test passed.
+- Added/removed holding report test passed.
+- Income-impact ranking test passed.
+- No-change report test passed.
+- Percentage formatting defect identified and corrected.
+- Corrected percentage formatting test passed.
+- Schwab import regression test passed.
+- Schwab securities value reconciled to `$754,211.09`.
+- Schwab cash reconciled to `$45,016.45`.
+- Schwab total value reconciled to `$799,227.54`.
+- Schwab cost basis reconciled to `$793,924.63`.
+- Market value difference: `$0.00`.
+- Cost basis difference: `$0.00`.
+- Forward annual dividend income: `$53,581.31`.
+- Portfolio yield: `7.10%`.
+
+**Acceptance:**
+All Sprint 15 acceptance criteria satisfied.
+
+**Git:**
+Code and documentation ready for commit and push.
 ## Upcoming Development
 
 
