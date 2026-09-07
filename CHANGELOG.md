@@ -332,6 +332,56 @@ Create the first version of historical portfolio snapshot capability.
 **Result:**
 Sprint 12 complete. Historical portfolio snapshot capability is ready for subsequent integration and historical analysis work.
 
+---
+
+## Sprint 13 — Historical Snapshot Storage
+
+**Status:** Complete
+
+**Objective:**
+
+Add persistent storage and retrieval for RIMS historical portfolio Snapshots using JSON files.
+
+**Files Added:**
+
+- `src/snapshot_store.py`
+
+**Implementation:**
+
+- Added `SnapshotStore` for persistent historical Snapshot storage.
+- Stores each Snapshot as an individual JSON file using the Snapshot date as the filename.
+- Automatically creates the configured Snapshot storage directory when needed.
+- Loads previously saved Snapshots back into RIMS `Snapshot` and `Holding` objects.
+- Lists available historical Snapshot dates in chronological order.
+- Prevents accidental overwriting of an existing Snapshot by default.
+- Allows intentional replacement when `overwrite=True` is explicitly specified.
+- Preserves Decimal financial values and date values during JSON serialization and reconstruction.
+- Maintains the authoritative historical holding market value when Snapshots are reconstructed.
+
+**Testing:**
+
+- SnapshotStore module import test passed.
+- Snapshot successfully saved to JSON.
+- Snapshot successfully loaded from JSON.
+- Historical financial metrics preserved through save/load round trip.
+- Individual holdings successfully reconstructed.
+- Multiple historical Snapshot dates successfully listed.
+- Accidental overwrite protection validated.
+- Intentional overwrite validated.
+- Existing RIMS functionality remains unaffected.
+
+**Acceptance:**
+
+- Historical Snapshots can be persistently stored.
+- Stored Snapshots can be retrieved and reconstructed.
+- Multiple historical Snapshot dates can be maintained.
+- Existing historical records are protected from accidental replacement.
+- Existing RIMS functionality remains operational.
+
+**Result:**
+
+Sprint 13 complete. Persistent JSON storage for historical portfolio Snapshots is operational and ready to support future historical analysis.
+
 ## Upcoming Development
 
 
