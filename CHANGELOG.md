@@ -470,6 +470,46 @@ All Sprint 15 acceptance criteria satisfied.
 
 **Git:**
 Code and documentation ready for commit and push.
+
+## Sprint 16 — Historical Analysis Orchestration
+
+**Status:** Complete
+
+**Objective:**
+Connect the historical snapshot components into an end-to-end RIMS workflow without duplicating business logic in the orchestration layer.
+
+**Implementation:**
+- Added `src/historical_analysis.py`.
+- Added orchestration for creating historical snapshots from portfolios.
+- Added snapshot persistence through `SnapshotStore`.
+- Added historical snapshot retrieval by date.
+- Added listing of available snapshot dates.
+- Added comparison of stored historical snapshots.
+- Added generation of human-readable historical reports from stored snapshots.
+- Added direct comparison and reporting methods for Snapshot objects already held in memory.
+- Kept financial calculations within the existing Portfolio, Snapshot, SnapshotComparison, and related classes.
+- Preserved the separation between orchestration and core business logic.
+- Preserved existing overwrite protection through SnapshotStore.
+
+**Testing:**
+- HistoricalAnalysis module import test passed.
+- End-to-end Portfolio → Snapshot → SnapshotStore → Load → SnapshotComparison → SnapshotReport workflow passed.
+- Snapshot 1 saved successfully for `2026-07-31`.
+- Snapshot 2 saved successfully for `2026-08-31`.
+- Stored snapshot retrieval returned the expected holding count.
+- Snapshot date listing returned both historical dates.
+- Market value change calculated correctly at `$520`.
+- Forward annual dividend income change calculated correctly at `$21.00`.
+- Holding count change calculated correctly at `0`.
+- Complete historical report generated correctly.
+- Temporary test data removed after testing.
+- Existing production functionality remains unchanged.
+
+**Acceptance:**
+All Sprint 16 acceptance criteria satisfied.
+
+**Git:**
+Code and documentation ready for commit and push.
 ## Upcoming Development
 
 
