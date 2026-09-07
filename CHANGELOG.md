@@ -510,6 +510,68 @@ All Sprint 16 acceptance criteria satisfied.
 
 **Git:**
 Code and documentation ready for commit and push.
+
+## Sprint 17 — Historical Income Trend
+**Status:** Complete
+**Objective:**
+Create the first RIMS capability for analyzing forward annual dividend income across multiple historical portfolio snapshots.
+
+**Implementation:**
+- Added `src/income_trend.py`.
+- Added `IncomeObservation` for historical income observations.
+- Added `IncomeChange` for period-to-period income changes.
+- Added `IncomeTrend` for multi-snapshot historical income analysis.
+- Added chronological ordering of historical snapshots.
+- Added beginning-to-ending forward annual dividend income analysis.
+- Added period-to-period income changes in dollars.
+- Added income percentage-change calculations.
+- Added portfolio-yield changes in percentage points.
+- Added income-yield-on-cost changes in percentage points.
+- Added portfolio market-value changes for context.
+- Added Increasing, Decreasing, and Stable trend classification.
+- Added identification of the largest income increase and decrease.
+- Added validation for empty snapshots, duplicate dates, and mixed portfolios.
+- Added dictionary serialization of trend results.
+- Kept forward annual dividend income in dollars as the primary income metric.
+- Preserved the distinction between income changes and investment performance.
+- Did not introduce CAGR, total-return, or performance calculations because transaction history is not yet integrated.
+
+**Testing:**
+- IncomeTrend module import test passed.
+- Three-snapshot increasing-income test passed.
+- Chronological ordering test passed.
+- Period-to-period income calculation test passed.
+- Overall income change test passed.
+- Income percentage-change test passed.
+- Increasing trend classification test passed.
+- Decreasing trend classification test passed.
+- Stable trend classification test passed.
+- Largest income increase test passed.
+- Largest income decrease test passed.
+- One-snapshot edge case passed.
+- Zero-snapshot rejection test passed.
+- Different portfolio validation test passed.
+- Duplicate snapshot-date validation test passed.
+- Serialization test passed.
+- Python compile test passed.
+- Schwab import regression test passed.
+- Schwab securities value reconciled to `$754,211.09`.
+- Schwab cash reconciled to `$45,016.45`.
+- Schwab total value reconciled to `$799,227.54`.
+- Schwab cost basis reconciled to `$793,924.63`.
+- Market value difference: `$0.00`.
+- Cost basis difference: `$0.00`.
+- Forward annual dividend income: `$53,581.31`.
+- Portfolio yield: `7.10%`.
+- First permanent historical snapshot created for `2026-06-29`.
+- Permanent snapshot contains 45 holdings and `$53,581.305272` forward annual dividend income.
+- Permanent snapshot save/load verification passed.
+
+**Acceptance:**
+All Sprint 17 acceptance criteria satisfied.
+
+**Git:**
+Code and documentation ready for commit and push.
 ## Upcoming Development
 
 
