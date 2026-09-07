@@ -382,6 +382,49 @@ Add persistent storage and retrieval for RIMS historical portfolio Snapshots usi
 
 Sprint 13 complete. Persistent JSON storage for historical portfolio Snapshots is operational and ready to support future historical analysis.
 
+## Sprint 14 — Historical Snapshot Comparison
+
+**Status:** Complete
+
+**Objective:**
+Create the first RIMS capability for comparing two historical portfolio snapshots and quantifying changes in portfolio value, income, and individual holdings.
+
+**Implementation:**
+- Added `src/snapshot_comparison.py`.
+- Added `HoldingChange` for security-level comparisons.
+- Added `SnapshotComparison` for portfolio-level comparisons.
+- Added comparison of total market value, securities value, cash, cost basis, gain/loss, forward annual dividend income, portfolio yield, income yield on cost, and holding count.
+- Added identification of common, added, and removed holdings.
+- Added holding-level changes for shares, market value, cost basis, gain/loss, and forward annual dividend income.
+- Used forward annual dividend income in dollars as the primary income comparison metric.
+- Portfolio yield and income yield on cost are reported as changes in percentage points.
+- Preserved Decimal precision for financial calculations.
+- Added dictionary serialization of comparison results.
+- Preserved historical snapshot independence.
+- Explicitly excluded investment performance and total return calculations because transaction history is not yet integrated.
+
+**Testing:**
+- Snapshot comparison module import test passed.
+- Portfolio-level comparison test passed.
+- Added/removed/common holding test passed.
+- Snapshot independence test passed.
+- Identical snapshot/no-change test passed.
+- Serialization test passed.
+- Schwab import regression test passed.
+- Schwab securities value reconciled to `$754,211.09`.
+- Schwab cash reconciled to `$45,016.45`.
+- Schwab total value reconciled to `$799,227.54`.
+- Schwab cost basis reconciled to `$793,924.63`.
+- Market value difference: `$0.00`.
+- Cost basis difference: `$0.00`.
+- Forward annual dividend income: `$53,581.31`.
+- Portfolio yield: `7.10%`.
+
+**Acceptance:**
+All Sprint 14 acceptance criteria satisfied.
+
+**Git:**
+Code and documentation ready for commit and push.
 ## Upcoming Development
 
 
