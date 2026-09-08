@@ -572,6 +572,78 @@ All Sprint 17 acceptance criteria satisfied.
 
 **Git:**
 Code and documentation ready for commit and push.
+
+## Sprint 18 — Portfolio Income Analysis
+
+### Objective
+Implement portfolio-level analysis answering:
+
+> Where is my retirement income coming from?
+
+The primary metric is forward annual dividend income in dollars. Yield remains a supporting metric for screening and relative analysis.
+
+### Implementation
+- Added `src/income_analysis.py`.
+- Added holding-level annual dividend income analysis.
+- Added income contribution percentage for each holding.
+- Added income ranking from highest to lowest income producer.
+- Added top 1, 3, 5, and 10 income concentration analysis.
+- Added aggregate income analysis by asset type.
+- Added aggregate income analysis by sector.
+- Added market-value concentration alongside income concentration.
+- Added configurable minimum-yield screening.
+- Added configurable high-yield review screening.
+- Default minimum yield: 5%.
+- Default high-yield review threshold: 10%.
+- High-yield screening is a review flag only and does not constitute a sell recommendation.
+- Added portfolio-level income, yield, and income-yield-on-cost metrics.
+- Added serialization through `to_dict()`.
+- Calculations use `Decimal`.
+- Analysis does not modify the underlying portfolio or holdings.
+
+### Importer Integration
+Updated `src/importer.py` so Schwab rows identified as `Cash and Money Market` are excluded from security holdings and included in the portfolio's separate cash value.
+
+This prevents cash and money-market positions from being treated as dividend-producing securities.
+
+### Testing
+Validated:
+- Module import.
+- Holding-level income calculations.
+- Income contribution percentages.
+- Top income concentration.
+- Asset-type aggregation.
+- Sector aggregation.
+- Minimum-yield screening.
+- High-yield review screening.
+- Configurable thresholds.
+- Zero-income portfolio handling.
+- Empty portfolio handling.
+- No-mutation behavior.
+- Dictionary serialization.
+- Actual Schwab portfolio regression.
+- Snapshot integration.
+- Python compilation.
+- Git whitespace validation.
+
+### Schwab Regression Results
+Using the actual Schwab position export:
+
+- Holdings: 44 securities.
+- Securities market value: $742,729.23.
+- Cash and money market: $56,498.31.
+- Total portfolio value: $799,227.54.
+- Securities cost basis: $782,442.77.
+- Forward annual dividend income: $53,177.1438.
+- Regression status: PASS.
+
+The change correctly reclassified SWVXX as cash rather than a security holding.
+
+### Acceptance
+Sprint 18 acceptance criteria completed.
+
+### Git
+Sprint 18 implementation and related importer correction are ready for commit and push after final verification.
 ## Upcoming Development
 
 

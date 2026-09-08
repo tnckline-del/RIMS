@@ -308,7 +308,14 @@ def read_schwab_rows(
             row_type = classify_row(row)
 
             if row_type == "security":
-                security_rows.append(row)
+                asset_type = row.get("Asset Type", "").strip()
+
+                if asset_type == "Cash and Money Market":
+                    cash_market_value += parse_decimal(
+                        row.get("Mkt Val (Market Value)")
+                    )
+                else:
+                    security_rows.append(row)
 
             elif row_type == "cash":
                 cash_market_value += parse_decimal(
