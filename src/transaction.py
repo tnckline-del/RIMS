@@ -81,13 +81,14 @@ class InvestmentTransaction:
     eventually represent purchases, sales, transfers, fees, and other
     investment activity.
 
-    Financial amounts use Decimal to preserve financial precision.
+    Financial amounts use Decimal to preserve financial precision. A symbol may be None when the source transaction is not associated
+    with a security symbol, such as Schwab bank-interest transactions.
     """
 
     account: str
     transaction_date: date
     action: str
-    symbol: str
+    symbol: str | None
     description: str
     amount: Decimal
     transaction_type: TransactionType
@@ -104,7 +105,11 @@ class InvestmentTransaction:
 
         account = self.account.strip()
         action = self.action.strip()
-        symbol = self.symbol.strip().upper()
+        symbol = (
+    None
+    if self.symbol is None
+    else self.symbol.strip().upper()
+)
         description = self.description.strip()
 
         if not account:
@@ -113,7 +118,7 @@ class InvestmentTransaction:
         if not action:
             raise ValueError("Transaction action cannot be blank.")
 
-        if not symbol:
+        if symbol == "":
             raise ValueError("Transaction symbol cannot be blank.")
 
         if not description:
