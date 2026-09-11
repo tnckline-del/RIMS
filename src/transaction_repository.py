@@ -67,8 +67,19 @@ class TransactionRepository:
     def load_dataset(self, dataset_id: str) -> TransactionDataset:
         """
         Load one persisted transaction dataset.
+
+        Structural or value errors in persisted data are surfaced as a
+        repository-level ValueError rather than exposing implementation-
+        specific errors such as KeyError.
         """
-        return self.store.load(dataset_id)
+        try:
+            return self.store.load(dataset_id)
+        except FileNotFoundError:
+            raise
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(
+                f"Invalid transaction dataset '{dataset_id}': {exc}"
+            ) from exc
 
     def dataset_ids(self) -> tuple[str, ...]:
         """
@@ -81,7 +92,7 @@ class TransactionRepository:
         Load all persisted datasets in dataset-id order.
         """
         return tuple(
-            self.store.load(dataset_id)
+            self.load_dataset(dataset_id)
             for dataset_id in self.dataset_ids()
         )
 
@@ -120,10 +131,15 @@ class TransactionRepository:
         """
         Return persisted transactions for one account.
         """
+        normalized_account = account.strip()
+
+        if not normalized_account:
+            raise ValueError("account cannot be blank.")
+
         return tuple(
             transaction
             for transaction in self.all_transactions()
-            if transaction.account == account
+            if transaction.account == normalized_account
         )
 
     def transactions_by_symbol(
@@ -157,6 +173,12 @@ class TransactionRepository:
         """
         Return transactions whose dates fall within an inclusive range.
         """
+        if not isinstance(start_date, date):
+            raise TypeError("start_date must be a date.")
+
+        if not isinstance(end_date, date):
+            raise TypeError("end_date must be a date.")
+
         if start_date > end_date:
             raise ValueError(
                 "start_date cannot be later than end_date."
