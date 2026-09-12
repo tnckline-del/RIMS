@@ -644,21 +644,442 @@ Sprint 18 acceptance criteria completed.
 
 ### Git
 Sprint 18 implementation and related importer correction are ready for commit and push after final verification.
+## Sprint 19A — Investment Transaction Model
+
+**Status:** Complete
+
+**Objective:**
+
+Establish the normalized RIMS investment transaction model required to preserve historical transaction activity and support future income and performance analysis.
+
+**Files added:**
+
+- `src/transaction.py`
+
+**Implementation:**
+
+- Added `InvestmentTransaction` data model.
+- Added transaction date, action, symbol, description, amount, quantity, price, fees, and account fields.
+- Added transaction-type classification.
+- Added income-type classification:
+  - Dividend
+  - Interest
+  - Capital Gain Distribution
+  - Other
+- Added income-character classification:
+  - Recurring
+  - Special
+  - Reinvested
+  - Prior Year
+  - Adjustment
+- Added tax-character classification.
+- Allowed transactions without security symbols to support items such as bank interest.
+- Added authoritative transaction-level income classification.
+- Added recurring-income determination.
+- Added explicit capital-gain-distribution identification.
+- Preserved the distinction between income and purchase transactions.
+
+**Income handling:**
+
+- Reinvested dividends are treated as income.
+- Reinvest Shares transactions are treated as purchases and are not counted as additional income.
+- Capital-gain distributions remain visible but are excluded from recurring retirement income.
+
+**Result:**
+
+Sprint 19A complete. The normalized transaction model provides the foundation for historical transaction storage and income analysis.
+
+---
+
+## Sprint 19B — Schwab Income Transaction Importer
+
+**Status:** Complete
+
+**Objective:**
+
+Import Schwab historical income transactions into the normalized RIMS transaction model while preserving the original transaction information and account identity.
+
+**Files added:**
+
+- `src/schwab_income_importer.py`
+
+**Implementation:**
+
+- Added Schwab transaction CSV import for income-related transactions.
+- Preserved the Schwab source action and description.
+- Preserved account identity.
+- Preserved optional security symbols.
+- Converted Schwab dates and financial amounts into RIMS types.
+- Classified Schwab actions into RIMS transaction, income, and income-character categories.
+- Preserved source-file provenance.
+- Added support for multiple Schwab income transaction files.
+
+**Income classification:**
+
+- Cash dividends classified as dividend income.
+- Qualified and non-qualified dividends preserved through tax-character classification.
+- Bond interest classified as interest income.
+- Bank interest supported without a security symbol.
+- Special dividends identified as special income.
+- Prior-year income identified separately.
+- Dividend adjustments identified separately.
+- Capital-gain distributions preserved but excluded from recurring retirement income.
+- Reinvested income preserved as income.
+- Reinvest Shares transactions excluded from income totals.
+
+**Validation:**
+
+- Actual Schwab income transaction exports successfully imported.
+- Account identity preserved.
+- Source-file provenance preserved.
+- Transaction classifications validated against Schwab source actions.
+
+**Result:**
+
+Sprint 19B complete. RIMS can now convert Schwab historical income transactions into the normalized transaction model.
+
+---
+
+## Sprint 19C — Multi-Account Income Aggregation
+
+**Status:** Complete
+
+**Objective:**
+
+Create the analytical layer that combines normalized income transactions across multiple accounts while preserving account and transaction identity.
+
+**Files added:**
+
+- `src/income_aggregation.py`
+
+**Implementation:**
+
+- Added `IncomeAggregationResult`.
+- Added aggregation across multiple accounts.
+- Added total historical income.
+- Added recurring historical income.
+- Added special-income totals.
+- Added reinvested-income totals.
+- Added prior-year income totals.
+- Added income-adjustment totals.
+- Added capital-gain-distribution totals.
+- Added income breakdown by account.
+- Added income breakdown by security symbol.
+- Added income breakdown by income type.
+- Added income breakdown by income character.
+- Added income breakdown by year.
+- Added income breakdown by date.
+- Preserved transactions within the aggregation result for further analysis.
+- Used deterministic transaction ordering.
+- Preserved symbolless income such as bank interest.
+- Explicitly limited the aggregation layer to actual historical transactions.
+
+**Design principle:**
+
+The aggregation layer does not project future dividend payments or annualize partial periods.
+
+**Result:**
+
+Sprint 19C complete. RIMS can now aggregate historical income across all imported accounts without losing account-level identity.
+
+---
+
+## Sprint 19D — Historical Income Analysis
+
+**Status:** Complete
+
+**Objective:**
+
+Create historical income analysis based on actual imported transactions, including annual summaries and recurring-income trends.
+
+**Files added:**
+
+- `src/historical_income.py`
+
+**Implementation:**
+
+- Added `IncomeYearSummary`.
+- Added `IncomeTrend`.
+- Added `HistoricalIncomeResult`.
+- Added historical income summaries by calendar year.
+- Added recurring-income summaries by year.
+- Added special-income summaries.
+- Added prior-year income summaries.
+- Added income-adjustment summaries.
+- Added capital-gain-distribution summaries.
+- Added income analysis by account.
+- Added income analysis by symbol.
+- Added income analysis by income type.
+- Added year-over-year recurring-income trend analysis.
+- Added dollar change calculations.
+- Added percentage-change calculations.
+- Identified partial current years.
+- Preserved actual transaction amounts without annualization or projection.
+
+**Design principle:**
+
+Historical income analysis reports actual transaction facts. It does not project future income or annualize a partial year.
+
+**Result:**
+
+Sprint 19D complete. RIMS can now analyze historical income by year, account, security, and income type and identify historical recurring-income trends.
+
+---
+
+## Sprint 19E — Historical Transaction Persistence
+
+**Status:** Complete
+
+**Objective:**
+
+Persist normalized historical investment transactions so that imported historical data can be retained and queried without re-importing Schwab files.
+
+**Files added:**
+
+- `src/transaction_store.py`
+
+**Files updated:**
+
+- `.gitignore`
+
+**Implementation:**
+
+- Added `TransactionDataset`.
+- Added `TransactionStore`.
+- Added JSON persistence for historical transaction datasets.
+- Added dataset identification.
+- Added account and source-file provenance to persisted datasets.
+- Added transaction serialization and reconstruction.
+- Preserved Decimal financial values.
+- Preserved transaction dates.
+- Preserved transaction classifications.
+- Added dataset listing.
+- Added dataset loading.
+- Added accidental-overwrite protection.
+- Added explicit overwrite capability when intentionally requested.
+- Added local transaction-data exclusions to `.gitignore`.
+
+**Design principle:**
+
+Historical transaction records are persisted as historical facts and are not silently overwritten.
+
+**Result:**
+
+Sprint 19E complete. RIMS now has persistent historical transaction storage.
+
+---
+
+## Sprint 19F — Historical Transaction Repository
+
+**Status:** Complete
+
+**Objective:**
+
+Create a RIMS-level repository interface for accessing persisted historical transaction datasets across multiple accounts.
+
+**Files added:**
+
+- `src/transaction_repository.py`
+
+**Implementation:**
+
+- Added `TransactionRepository`.
+- Added repository construction from a storage path.
+- Added dataset saving.
+- Added dataset loading.
+- Added persisted dataset discovery.
+- Added loading of all datasets.
+- Added combined transaction retrieval across accounts.
+- Added deterministic chronological transaction ordering.
+- Added account filtering.
+- Added symbol filtering.
+- Added date-range filtering.
+- Added income-type filtering.
+- Added transaction-type filtering.
+- Added income transaction retrieval.
+- Added recurring-income transaction retrieval.
+- Added total historical income calculation.
+- Added total recurring-income calculation.
+- Added account discovery.
+- Added symbol discovery.
+- Preserved account identity and source-file provenance.
+
+**Design principle:**
+
+The repository provides access to persisted historical records without modifying the underlying transactions or duplicating Schwab import logic.
+
+**Result:**
+
+Sprint 19F complete. RIMS now has a repository abstraction between persistent transaction storage and higher-level analysis.
+
+---
+
+## Sprint 19G — Transaction Repository Hardening and Automated Tests
+
+**Status:** Complete
+
+**Objective:**
+
+Harden the historical transaction repository and establish the first permanent automated regression test suite for the transaction infrastructure.
+
+**Files changed:**
+
+- `src/transaction_repository.py`
+- `tests/test_transaction_repository.py`
+
+**Implementation:**
+
+- Added validation for blank account filters.
+- Added validation for blank symbol filters.
+- Added validation for invalid date ranges.
+- Added validation for invalid date types.
+- Added validation for invalid income types.
+- Added validation for invalid transaction types.
+- Added clearer handling of corrupt persisted JSON.
+- Added clearer handling of structurally invalid persisted JSON.
+- Preserved source-file provenance through repository load operations.
+- Preserved deterministic transaction ordering.
+- Preserved protection against accidental dataset overwrites.
+
+**Testing:**
+
+- Added automated repository regression tests.
+- Verified account filtering.
+- Verified symbol filtering.
+- Verified date-range filtering.
+- Verified income-type filtering.
+- Verified transaction-type filtering.
+- Verified income totals.
+- Verified recurring-income totals.
+- Verified special-income exclusion from recurring income.
+- Verified empty repositories.
+- Verified invalid input rejection.
+- Verified corrupt JSON rejection.
+- Verified missing required JSON data rejection.
+- Verified source provenance preservation.
+- **19 repository tests passed.**
+
+**Real-data validation:**
+
+Using the three actual Schwab income transaction exports:
+
+- 779 total transactions.
+- 751 income transactions.
+- 674 recurring-income transactions.
+- Total historical income: **$68,440.04**.
+- Total recurring income: **$65,533.10**.
+
+**Git:**
+
+- Commit: `e9dae05`
+- Repository hardening and automated tests pushed to GitHub.
+
+**Result:**
+
+Sprint 19G complete. The transaction repository is hardened and protected by a permanent automated regression suite.
+
+---
+
+## Sprint 19H — Historical Income Query Service
+
+**Status:** Complete
+
+**Objective:**
+
+Create a convenient repository-backed service for querying historical income without duplicating aggregation logic, forecasting future income, or modifying historical transaction records.
+
+**Files added:**
+
+- `src/income_query.py`
+- `tests/test_income_query.py`
+
+**Implementation:**
+
+- Added `IncomeQuery`.
+- Added historical income queries by account.
+- Added historical income queries by security symbol.
+- Added historical income queries by income type.
+- Added historical income queries by date range.
+- Added historical income queries by calendar year.
+- Added recurring-income filtering.
+- Added special-income queries by year.
+- Added reinvested-income queries by year.
+- Added prior-year income queries by year.
+- Added income-adjustment queries by year.
+- Added capital-gain-distribution queries by year.
+- Added total historical income.
+- Added total recurring income.
+- Added total special income.
+- Added total reinvested income.
+- Added total prior-year income.
+- Added total income adjustments.
+- Added total capital-gain distributions.
+- Reused the transaction model's authoritative recurring-income classification.
+- Prevented Reinvest Shares transactions from being counted as additional income.
+- Preserved capital-gain distributions as visible historical income while excluding them from recurring income.
+- Preserved actual transaction amounts without annualization or future projection.
+- Added convenience construction through `query_historical_income()`.
+
+**Testing:**
+
+- Added 15 automated IncomeQuery tests.
+- Verified empty repository behavior.
+- Verified account queries.
+- Verified recurring-income queries.
+- Verified case-insensitive symbol queries.
+- Verified income-type queries.
+- Verified inclusive date ranges.
+- Verified annual income queries.
+- Verified recurring annual income queries.
+- Verified special income.
+- Verified reinvested income.
+- Verified prior-year income.
+- Verified income adjustments.
+- Verified capital-gain distributions.
+- Verified Reinvest Shares are not double-counted.
+- Verified invalid input rejection.
+- **34 total automated tests passed across Sprints 19G and 19H.**
+
+**Real-data integration validation:**
+
+Using the three actual Schwab income transaction exports:
+
+- Total historical income: **$68,440.04**.
+- Total recurring income: **$65,533.10**.
+- 2025 income: **$32,852.46**.
+- 2025 recurring income: **$31,964.78**.
+- 2026 income: **$35,587.58**.
+- 2026 recurring income: **$33,568.32**.
+- Contributory ...111 recurring income: **$60,968.96**.
+- Joint Tenant ...941 recurring income: **$3,151.48**.
+- Roth Contributory IRA ...916 recurring income: **$1,412.66**.
+- Dividend income: **$54,160.89**.
+- Interest income: **$14,255.03**.
+- Capital-gain distributions: **$24.12**.
+- Special income: **$629.53**.
+- Reinvested income: **$603.45**.
+- Prior-year income: **$1,698.57**.
+- Income adjustments: **-$48.68**.
+
+All integration results reconciled to the previously established historical income totals.
+
+**Git:**
+
+- Commit: `7471a46`
+- Historical income query service and automated tests pushed to GitHub.
+- Working tree verified clean.
+- Local `main` verified up to date with `origin/main`.
+
+**Result:**
+
+Sprint 19H complete. RIMS now has a repository-backed historical income query layer suitable for future reporting, income dashboards, and retirement-income analysis.
+
+---
+
 ## Upcoming Development
 
+The next sprint will be assigned sequentially as **Sprint 19I**.
 
-**Planned objective:**  
-Establish the RIMS historical snapshot capability so portfolio values, holdings, income, and other important metrics can be preserved at specific points in time.
+The detailed objective, files, implementation, testing requirements, and acceptance criteria will be defined before implementation begins.
 
-Planned capabilities include:
-
-- Point-in-time portfolio snapshots.
-- Preservation of historical holdings.
-- Historical market value.
-- Historical cost basis.
-- Historical forward annual dividend income.
-- Historical portfolio yield.
-- Snapshot dates.
-- Comparison of current and historical portfolio states.
-
-The detailed Sprint 12 scope will be defined before implementation begins.
+Future development will continue to build on the completed historical transaction and income infrastructure without compromising the preservation of historical data or the distinction between actual historical income and projected future income.
