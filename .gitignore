@@ -222,7 +222,7 @@ data/imports/
 data/snapshots/
 data/archive/
 data/transactions/
-output/
+data/forward_income/
 
 # Local configuration
 config.local.py
