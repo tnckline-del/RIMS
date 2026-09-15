@@ -1303,10 +1303,79 @@ Sprint 19L complete. RIMS can now persist explicit forward-income assumptions lo
 
 ---
 
+## Sprint 19M — Forward Income Position Management
+
+**Objective:**
+
+Extend the forward-income foundation so RIMS can automatically recognize changes in a current holding's position and expected income rate while presenting the results in simple, user-understandable terms.
+
+**Files added:**
+
+- `src/forward_income_change.py`
+- `src/forward_income_baseline.py`
+- `src/forward_income_manager.py`
+- `tests/test_forward_income_change.py`
+- `tests/test_forward_income_baseline.py`
+- `tests/test_forward_income_manager.py`
+
+**Files modified:**
+
+- `src/forward_income.py`
+- `tests/test_forward_income.py`
+- `tests/test_forward_income_integration.py`
+
+**Implementation:**
+
+- Kept **Forward Annual Income** as the primary user-facing income concept.
+- Internally represented forward income as an expected annual income amount per share or unit.
+- Calculated forward annual income from current shares multiplied by the explicit forward income rate.
+- Preserved the separation between historical income and explicit forward-income assumptions.
+- Added automatic comparison of the current position against the previous baseline.
+- Added automatic recognition of position changes.
+- Added automatic recognition of expected income-rate changes.
+- Added recognition of simultaneous position and expected income-rate changes.
+- Added recognition of new positions.
+- Added recognition of closed positions.
+- Added recognition of positions with no change.
+- Added simple user-facing change reasons:
+  - **New Position**
+  - **Position Change**
+  - **Dividend Change**
+  - **Position & Dividend Change**
+  - **Position Closed**
+  - **No Change**
+- Added persistent baseline storage for the last known active forward-income positions.
+- Added a management service to coordinate assumptions, current holdings, change detection, and baseline updates.
+- Designed closed positions to appear once with **Position Closed** and then disappear from subsequent reports.
+- Kept full historical change/audit tracking outside the scope of this sprint.
+- Kept the user-facing model intentionally simple: a holding has shares and an expected annual income, and RIMS identifies what changed.
+
+**Testing:**
+
+- Added automated tests for change classification.
+- Added automated tests for baseline persistence.
+- Added automated tests for forward-income management.
+- Verified new-position detection.
+- Verified position-change detection.
+- Verified dividend-change detection.
+- Verified combined position-and-dividend change detection.
+- Verified closed-position detection.
+- Verified no-change detection.
+- Verified that closed positions appear only on the closing report.
+- Verified that change reasons are exposed in forward-income results.
+- Verified the existing forward-income functionality remained intact.
+- **177 total automated tests passed across the complete test suite at sprint completion.**
+
+Sprint 19M complete. RIMS can now automatically identify meaningful changes in forward-income positions while keeping the user-facing model simple and understandable.
+
+---
+
 ## Upcoming Development
 
-The next sprint will be assigned sequentially as **Sprint 19M**.
+The next sprint will be assigned sequentially as **Sprint 19N**.
 
 The detailed objective, files, implementation, testing requirements, and acceptance criteria will be defined before implementation begins.
 
-Future development will continue to build on the completed historical transaction, historical income, current-income, and forward-income infrastructure without compromising data integrity or the distinction between actual historical income and explicit forward-income assumptions.
+Future development will continue to build on the completed historical transaction, historical income, current-income, and forward-income infrastructure while maintaining the core RIMS principle:
+
+**Complexity belongs in the software, not with the user.**
