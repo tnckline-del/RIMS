@@ -47,8 +47,8 @@ class ForwardIncomeStore:
         payload = [
             {
                 "symbol": assumption.symbol,
-                "forward_annual_income": str(
-                    assumption.forward_annual_income
+                "forward_annual_income_per_share": str(
+                    assumption.forward_annual_income_per_share
                 ),
                 "effective_date": assumption.effective_date.isoformat(),
                 "source": assumption.source,
@@ -99,7 +99,7 @@ class ForwardIncomeStore:
 
         required_fields = {
             "symbol",
-            "forward_annual_income",
+            "forward_annual_income_per_share",
             "effective_date",
             "source",
             "notes",
@@ -113,8 +113,8 @@ class ForwardIncomeStore:
         try:
             return ForwardIncomeAssumption(
                 symbol=item["symbol"],
-                forward_annual_income=Decimal(
-                    item["forward_annual_income"]
+                forward_annual_income_per_share=Decimal(
+                    item["forward_annual_income_per_share"]
                 ),
                 effective_date=date.fromisoformat(
                     item["effective_date"]

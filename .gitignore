@@ -235,3 +235,5 @@ config.local.py
 # Temporary files
 *.tmp
 *.bak
+# RIMS generated output
+output/
