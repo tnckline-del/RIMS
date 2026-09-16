@@ -1422,12 +1422,59 @@ Sprint 19N complete. RIMS can now produce a single portfolio-level view of expec
 
 ---
 
+## Sprint 19O — Forward Income Review
+
+**Objective:**
+
+Create a concise portfolio review that identifies forward-income items requiring the user's attention, without making investment recommendations.
+
+**Files added:**
+
+- `src/forward_income_review.py`
+- `tests/test_forward_income_review.py`
+- `tests/test_forward_income_review_integration.py`
+
+**Implementation:**
+
+- Created a user-facing `ForwardIncomeReview` result.
+- Created `ForwardIncomeReviewItem` for individual items requiring attention.
+- Identified new positions.
+- Identified position changes.
+- Identified dividend changes.
+- Identified combined position and dividend changes.
+- Identified closed positions.
+- Identified holdings with missing Forward Annual Income.
+- Excluded holdings with no change from the review.
+- Used the existing Sprint 19N `ForwardIncomeReport` as the source for review information.
+- Did not perform another forward-income calculation.
+- Did not create another portfolio baseline.
+- Did not calculate yield.
+- Did not annualize historical income.
+- Did not make investment recommendations.
+- Preserved the RIMS principle that complexity belongs in the software, not with the user.
+
+**Testing:**
+
+- Added 11 automated unit tests.
+- Added 1 integration test.
+- Verified all review categories.
+- Verified unchanged holdings are excluded.
+- Verified missing Forward Annual Income is identified.
+- Verified shares and Forward Annual Income are preserved.
+- Verified the review does not modify the underlying report.
+- Verified integration with the Sprint 19N report structure.
+- **201 total automated tests passed across the complete RIMS test suite at sprint completion.**
+
+Sprint 19O complete. RIMS can now produce a concise review showing which forward-income holdings require the user's attention without making investment decisions for the user.
+
+---
+
 ## Upcoming Development
 
-The next sprint will be assigned sequentially as **Sprint 19O**.
+The next sprint will be assigned sequentially as **Sprint 19P**.
 
 The detailed objective, files, implementation, testing requirements, and acceptance criteria will be defined before implementation begins.
 
-Future development will continue to build on the completed historical transaction, historical income, current-income, and forward-income infrastructure while maintaining the core RIMS principle:
+Future development will continue to build on the completed historical transaction, historical income, current-income, forward-income, portfolio-reporting, and forward-income-review infrastructure while maintaining the core RIMS principle:
 
 **Complexity belongs in the software, not with the user.**
