@@ -1469,12 +1469,71 @@ Sprint 19O complete. RIMS can now produce a concise review showing which forward
 
 ---
 
+---
+
+## Sprint 19P — RIMS Gap Assessment
+
+**Status:** Complete
+
+**Objective:**
+
+Conduct a formal look-back assessment of the RIMS project following completion of Sprint 19O.
+
+The assessment reviewed the original RIMS objectives, evaluated the capabilities completed through Sprint 19O, identified significant gaps, and established the architectural direction for the next phase of development.
+
+**Files added:**
+
+- `docs/Sprint19P_Gap_Assessment.md`
+
+**Completed:**
+
+- Reviewed the original RIMS product vision.
+- Reviewed the original RIMS success criteria.
+- Assessed the current portfolio, historical, transaction, income, forward-income, reporting, and review capabilities.
+- Confirmed that the analytical foundation is sufficiently developed to begin application-layer development.
+- Identified the RIMS Application / User Interface as the major remaining gap.
+- Defined the required periodic data-import and analysis workflow.
+- Defined the minimum Dashboard requirements.
+- Established that the Dashboard must consume existing RIMS business logic rather than duplicate financial calculations.
+- Identified capabilities that should remain deferred until the core application is operational.
+- Established Sprint 20 as the beginning of the RIMS application phase.
+- Reinforced the guiding principle:
+
+**Complexity belongs in the software, not with the user.**
+
+**Testing / Verification:**
+
+- Gap assessment completed.
+- Original project objectives reviewed.
+- Current capabilities assessed.
+- Major application-layer gap identified and documented.
+- Sprint 20 direction established.
+- No production financial logic changed.
+
+**Result:**
+
+Sprint 19P complete. RIMS has reached the point where development should transition from primarily adding analytical engines to integrating the existing capabilities into a practical user-facing application.
+
+---
+
 ## Upcoming Development
 
-The next sprint will be assigned sequentially as **Sprint 19P**.
+The next sprint will be **Sprint 20 — RIMS Application Foundation**.
 
-The detailed objective, files, implementation, testing requirements, and acceptance criteria will be defined before implementation begins.
+Sprint 20 will establish the initial RIMS user-facing application framework and Dashboard shell while preserving the existing separation between the user interface, application workflow, and financial business logic.
 
-Future development will continue to build on the completed historical transaction, historical income, current-income, forward-income, portfolio-reporting, and forward-income-review infrastructure while maintaining the core RIMS principle:
+The initial Sprint 20 scope will include:
+
+- Application framework.
+- Main application entry point.
+- Dashboard shell.
+- Navigation structure.
+- Integration points for existing RIMS services.
+- Basic error handling.
+- Preparation for periodic report/file ingestion.
+
+Investment recommendations, tax planning, RMD optimization, advisor scoring, research integration, stress testing, AI portfolio review, and advanced forecasting remain outside the initial Sprint 20 scope.
+
+**Guiding principle:**
 
 **Complexity belongs in the software, not with the user.**
