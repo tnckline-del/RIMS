@@ -1370,9 +1370,61 @@ Sprint 19M complete. RIMS can now automatically identify meaningful changes in f
 
 ---
 
+## Sprint 19N — Forward Income Portfolio Report
+
+**Objective:**
+
+Create a simple portfolio-level forward-income report that combines current holdings, explicit forward-income assumptions, and automatically detected changes into one user-facing view.
+
+**Files added:**
+
+- `src/forward_income_report.py`
+- `tests/test_forward_income_report.py`
+- `tests/test_forward_income_report_integration.py`
+
+**Implementation:**
+
+- Created a user-facing `ForwardIncomeReport` data structure.
+- Included current holdings, shares, market value, and Forward Annual Income.
+- Included each holding's percentage of total forward annual income.
+- Included automatically detected change reasons.
+- Included total portfolio market value.
+- Included total Forward Annual Income.
+- Included counts of holdings with and without forward-income coverage.
+- Included portfolio income concentration.
+- Identified the holding producing the largest amount of Forward Annual Income.
+- Used the existing `ForwardIncomeManager` to combine stored assumptions, current positions, change detection, and baseline management.
+- Preserved the distinction between historical income and explicit forward-income assumptions.
+- Did not annualize historical income.
+- Did not substitute current yield for forward income.
+- Did not introduce dividend-growth projections or other unsupported income projections.
+- Preserved the RIMS principle that the user should see a simple income-focused result while complexity remains inside the software.
+- Designed the report to show a closed position once with **Position Closed** and then remove it from subsequent reports.
+
+**Testing:**
+
+- Added automated tests for report creation and validation.
+- Verified holding-level forward-income information.
+- Verified portfolio-level totals.
+- Verified largest-income-holding identification.
+- Verified income concentration.
+- Verified holdings without forward-income assumptions.
+- Verified position-change detection is exposed in the report.
+- Verified dividend-change detection is exposed in the report.
+- Verified closed-position reporting behavior.
+- Verified that report generation does not mutate the portfolio.
+- Verified safe behavior when no forward-income assumptions exist.
+- Added integration testing using the actual Schwab portfolio import.
+- Verified the report correctly calculates position income as shares multiplied by expected annual income per share.
+- **189 total automated tests passed across the complete test suite at sprint completion.**
+
+Sprint 19N complete. RIMS can now produce a single portfolio-level view of expected annual income and clearly identify what changed in the current forward-income positions.
+
+---
+
 ## Upcoming Development
 
-The next sprint will be assigned sequentially as **Sprint 19N**.
+The next sprint will be assigned sequentially as **Sprint 19O**.
 
 The detailed objective, files, implementation, testing requirements, and acceptance criteria will be defined before implementation begins.
 
