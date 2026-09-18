@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import streamlit as st
 
-from app.app_config import APP_NAME, APP_SHORT_NAME, LAYOUT, PAGE_ICON, PAGE_TITLE
+from app.app_config import LAYOUT, PAGE_ICON, PAGE_TITLE
 from app.pages.dashboard import render_dashboard
+from app.pages.import_data import render_import_data
 
 
 def configure_page() -> None:
@@ -18,13 +19,22 @@ def configure_page() -> None:
 
 
 def render_application() -> None:
-    """Render the RIMS application."""
-    st.title(APP_SHORT_NAME)
-    st.caption(APP_NAME)
+    """Render the RIMS application navigation and pages."""
+    pages = [
+        st.Page(
+            render_dashboard,
+            title="Dashboard",
+            url_path="dashboard",
+        ),
+        st.Page(
+            render_import_data,
+            title="Import Data",
+            url_path="import-data",
+        ),
+    ]
 
-    st.divider()
-
-    render_dashboard()
+    navigation = st.navigation(pages)
+    navigation.run()
 
 
 def main() -> None:
