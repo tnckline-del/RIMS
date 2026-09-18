@@ -1516,24 +1516,156 @@ Sprint 19P complete. RIMS has reached the point where development should transit
 
 ---
 
+## Sprint 20 — RIMS Application Foundation
+
+**Status:** Complete
+
+**Objective:**
+
+Establish the initial RIMS user-facing application framework and Dashboard shell while preserving the separation between the user interface, application workflow, and financial business logic.
+
+**Files added:**
+
+- `app/__init__.py`
+- `app/app_config.py`
+- `app/main.py`
+- `app/pages/dashboard.py`
+- `app/services/__init__.py`
+- `tests/test_app_foundation.py`
+
+**Files modified:**
+
+- `requirements.txt`
+
+**Implementation:**
+
+- Added the RIMS Streamlit application framework.
+- Added the main application entry point.
+- Added application configuration.
+- Added the initial Dashboard page.
+- Added the application services package.
+- Added Streamlit as a bounded runtime dependency.
+- Established the foundation for application-level navigation.
+- Kept financial calculations outside the Streamlit presentation layer.
+- Established the local-browser application model for RIMS.
+
+**Testing:**
+
+- Added 8 automated application-foundation tests.
+- Verified application identity and configuration.
+- Verified project and application paths.
+- Verified required application files.
+- Verified application entry-point functions.
+- Verified Dashboard availability.
+- **219 total automated tests passed across the complete RIMS test suite at sprint completion.**
+- Verified the application successfully launched through Streamlit.
+
+**Acceptance:**
+
+- RIMS application framework operational.
+- Dashboard shell operational.
+- Existing RIMS financial functionality remains separated from the presentation layer.
+- Application successfully runs locally in a browser.
+
+Sprint 20 complete.
+
+---
+
+## Sprint 21 — Schwab Import Validation Workflow
+
+**Status:** Complete
+
+**Objective:**
+
+Allow the user to select Schwab position and transaction files, validate them, and prepare them for import into RIMS without modifying persistent financial data until validation succeeds.
+
+**Files added:**
+
+- `app/pages/import_data.py`
+- `app/services/import_service.py`
+- `tests/test_import_data.py`
+- `tests/test_import_service.py`
+
+**Files modified:**
+
+- `app/main.py`
+
+**Implementation:**
+
+- Added the RIMS Import Data application page.
+- Added separate Schwab Positions and Schwab Transactions validation workflows.
+- Added an application-layer `ImportService` that wraps the existing Schwab importers.
+- Added structured positions validation results.
+- Added structured transaction validation results.
+- Added positions reconciliation reporting.
+- Added transaction counts, income counts, recurring income, and transaction date-range reporting.
+- Added transaction account entry because Schwab transaction exports do not contain the RIMS account name.
+- Added temporary handling of uploaded files without persisting financial data.
+- Added validation error handling for missing files and invalid Schwab files.
+- Added native Streamlit navigation for Dashboard and Import Data.
+- Preserved the separation between the Streamlit UI, application services, and existing financial/import business logic.
+- No persistent portfolio, transaction, snapshot, or forward-income data is modified by validation.
+
+**Testing:**
+
+- Added 10 automated Import Service tests.
+- Added 6 automated Import Data page tests.
+- Verified valid positions-file validation.
+- Verified positions reconciliation.
+- Verified invalid/unrecognized positions files.
+- Verified valid transaction-file validation.
+- Verified missing transaction account handling.
+- Verified invalid/unrecognized transaction files.
+- Verified validation results are displayed correctly.
+- **225 total automated tests passed across the complete RIMS test suite at sprint completion.**
+
+**Real Schwab-file validation:**
+
+Using the user's actual Schwab exports:
+
+- Positions file successfully validated.
+- **44 holdings** recognized.
+- Market value difference: **$0.00**.
+- Cost basis difference: **$0.00**.
+- Schwab positions reconciliation passed.
+
+Using an actual Contributory account transaction export:
+
+- **22 transactions** recognized.
+- **21 income transactions** recognized.
+- Recurring income: **$2,855.75**.
+- Transaction date range: **07/01/2026–07/31/2026**.
+
+An incorrectly selected positions file was also rejected by the transaction validator, confirming that the validation workflow detects an inappropriate file type before any persistent import occurs.
+
+**Acceptance:**
+
+- Schwab positions files can be selected and validated.
+- Schwab transaction files can be selected and validated.
+- Validation results are presented clearly to the user.
+- Existing Schwab importers remain the source of parsing and classification logic.
+- Validation does not modify persistent financial data.
+- Real Schwab files successfully passed the appropriate validation workflows.
+
+Sprint 21 complete.
+
+---
+
 ## Upcoming Development
 
-The next sprint will be **Sprint 20 — RIMS Application Foundation**.
+The next development phase should build on the validated application workflow by adding the controlled **import/update process** that follows successful validation.
 
-Sprint 20 will establish the initial RIMS user-facing application framework and Dashboard shell while preserving the existing separation between the user interface, application workflow, and financial business logic.
+The next sprint should **not** automatically overwrite the current portfolio or historical records. It should establish the controlled transition:
 
-The initial Sprint 20 scope will include:
-
-- Application framework.
-- Main application entry point.
-- Dashboard shell.
-- Navigation structure.
-- Integration points for existing RIMS services.
-- Basic error handling.
-- Preparation for periodic report/file ingestion.
-
-Investment recommendations, tax planning, RMD optimization, advisor scoring, research integration, stress testing, AI portfolio review, and advanced forecasting remain outside the initial Sprint 20 scope.
-
-**Guiding principle:**
-
-**Complexity belongs in the software, not with the user.**
+```text
+Select File
+    ↓
+Validate
+    ↓
+Review Validation Results
+    ↓
+Import / Update RIMS
+    ↓
+Preserve Historical Data
+    ↓
+Update Current Portfolio
