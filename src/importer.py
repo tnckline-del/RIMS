@@ -26,15 +26,40 @@ Author:
 from __future__ import annotations
 
 import csv
+import re
 import sys
+
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
-
 from src.holding import Holding
 from src.portfolio import Portfolio
 
+SCHWAB_REPORTING_DATE_PATTERN = re.compile(
+    r"as of\s+\d{1,2}:\d{2}\s+[AP]M\s+ET,\s+(\d{2}/\d{2}/\d{4})",
+    re.IGNORECASE,
+)
+
+
+def parse_reporting_date(header: str) -> date:
+    """Extract the reporting date from a Schwab positions header."""
+    match = SCHWAB_REPORTING_DATE_PATTERN.search(header)
+
+    if match is None:
+        raise ValueError(
+            "Unable to parse Schwab reporting date from file header."
+        )
+
+    try:
+        return datetime.strptime(
+            match.group(1),
+            "%m/%d/%Y",
+        ).date()
+    except ValueError as exc:
+        raise ValueError(
+            "Unable to parse Schwab reporting date from file header."
+        ) from exc
 
 SCHWAB_REQUIRED_COLUMNS = {
     "Symbol",
@@ -60,6 +85,7 @@ class SchwabImportResult:
 
     portfolio: Portfolio
     cash_market_value: Decimal
+    reporting_date: date
     schwab_market_value: Decimal
     schwab_cost_basis: Decimal
     imported_market_value: Decimal
@@ -389,6 +415,15 @@ def import_schwab_csv(
     Schwab's market value is authoritative and is summed across
     duplicate security records.
     """
+    with Path(csv_path).open(
+        "r",
+        encoding="utf-8-sig",
+        newline="",
+    ) as file:
+        reporting_header = file.readline().strip()
+
+    reporting_date = parse_reporting_date(reporting_header)
+
     rows, cash_market_value = read_schwab_rows(csv_path)
 
     portfolio = Portfolio(name=portfolio_name)
@@ -433,6 +468,7 @@ def import_schwab_csv(
         schwab_cost_basis=schwab_cost_basis,
         imported_market_value=imported_market_value,
         imported_cost_basis=imported_cost_basis,
+        reporting_date=reporting_date,
     )
 
 
