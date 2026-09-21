@@ -11,6 +11,12 @@ from src.importer import (
 )
 
 
+REAL_SCHWAB_FILE = Path(
+    "/Users/timothykline/Downloads/"
+    "All-Accounts-Positions-2026-09-07-173949.csv"
+)
+
+
 def test_parse_reporting_date_from_schwab_header() -> None:
     header = (
         '"Positions for All-Accounts as of 05:39 PM ET, 09/07/2026"'
@@ -53,31 +59,23 @@ def test_parse_reporting_date_rejects_invalid_date() -> None:
         parse_reporting_date(header)
 
 
+@pytest.mark.skipif(
+    not REAL_SCHWAB_FILE.exists(),
+    reason="Real Schwab integration file not available.",
+)
 def test_import_schwab_csv_returns_reporting_date() -> None:
-    csv_path = Path(
-        "/Users/timothykline/Downloads/"
-        "All-Accounts-Positions-2026-09-07-173949.csv"
-    )
-
-    if not csv_path.exists():
-        pytest.skip(f"Integration file not available: {csv_path}")
-
-    result = import_schwab_csv(csv_path)
+    result = import_schwab_csv(REAL_SCHWAB_FILE)
 
     assert isinstance(result, SchwabImportResult)
     assert result.reporting_date == date(2026, 9, 7)
 
 
+@pytest.mark.skipif(
+    not REAL_SCHWAB_FILE.exists(),
+    reason="Real Schwab integration file not available.",
+)
 def test_import_schwab_csv_preserves_reconciliation() -> None:
-    csv_path = Path(
-        "/Users/timothykline/Downloads/"
-        "All-Accounts-Positions-2026-09-07-173949.csv"
-    )
-
-    if not csv_path.exists():
-        pytest.skip(f"Integration file not available: {csv_path}")
-
-    result = import_schwab_csv(csv_path)
+    result = import_schwab_csv(REAL_SCHWAB_FILE)
 
     assert result.reporting_date == date(2026, 9, 7)
     assert result.is_reconciled is True
