@@ -4,6 +4,9 @@ Repository access for persisted RIMS investment transactions.
 Sprint 19F provides a RIMS-level interface for managing and querying
 multiple persisted historical transaction datasets.
 
+Sprint 22D extends the repository with controlled append behavior and
+deterministic transaction-level duplicate detection.
+
 Responsibilities:
     - Register transaction datasets with the repository.
     - Persist datasets through TransactionStore.
@@ -12,6 +15,8 @@ Responsibilities:
     - Combine transactions across accounts.
     - Filter historical transactions without modifying them.
     - Preserve account and source-file provenance.
+    - Create deterministic transaction identities.
+    - Append only previously unseen transactions.
 
 This module does not import Schwab CSV files, classify transactions,
 or perform income analysis. Those responsibilities belong to the
@@ -23,14 +28,53 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
+import hashlib
+import json
 from pathlib import Path
 
 from .transaction import (
+    IncomeCharacter,
     IncomeType,
     InvestmentTransaction,
+    TaxCharacter,
     TransactionType,
 )
 from .transaction_store import TransactionDataset, TransactionStore
+
+
+@dataclass(frozen=True, slots=True)
+class TransactionAppendResult:
+    """
+    Result of appending a transaction batch while suppressing duplicates.
+
+    transactions_received:
+        Number of transactions supplied to the append operation.
+
+    transactions_added:
+        Number of previously unseen transactions persisted.
+
+    duplicates_skipped:
+        Number of transactions rejected because their identity already
+        existed either in persisted history or earlier in the incoming batch.
+
+    dataset_path:
+        Path of the newly created dataset when at least one transaction
+        was added. None when the entire batch was duplicate.
+
+    dataset_created:
+        True when a new dataset was persisted.
+    """
+
+    transactions_received: int
+    transactions_added: int
+    duplicates_skipped: int
+    dataset_path: Path | None
+    added_transactions: tuple[InvestmentTransaction, ...]
+
+    @property
+    def dataset_created(self) -> bool:
+        """Return True when a new transaction dataset was created."""
+        return self.dataset_path is not None
 
 
 @dataclass(frozen=True, slots=True)
@@ -305,4 +349,188 @@ class TransactionRepository:
                     if transaction.symbol is not None
                 }
             )
+        )
+
+    @staticmethod
+    def transaction_fingerprint(
+        transaction: InvestmentTransaction,
+    ) -> str:
+        """
+        Create a deterministic identity for one investment transaction.
+
+        The fingerprint represents the economic transaction itself and
+        deliberately excludes source_file because the same transaction
+        may legitimately appear in multiple Schwab exports.
+
+        Canonical JSON with sorted keys is hashed with SHA-256 so that
+        transaction identity remains deterministic across imports.
+        """
+        if not isinstance(transaction, InvestmentTransaction):
+            raise TypeError(
+                "transaction must be an InvestmentTransaction."
+            )
+
+        payload = {
+            "account": transaction.account,
+            "transaction_date": transaction.transaction_date.isoformat(),
+            "action": transaction.action,
+            "symbol": transaction.symbol,
+            "description": transaction.description,
+            "amount": str(transaction.amount),
+            "transaction_type": transaction.transaction_type.value,
+            "income_type": (
+                transaction.income_type.value
+                if transaction.income_type is not None
+                else None
+            ),
+            "income_character": (
+                transaction.income_character.value
+                if transaction.income_character is not None
+                else None
+            ),
+            "tax_character": (
+                transaction.tax_character.value
+                if transaction.tax_character is not None
+                else None
+            ),
+            "quantity": (
+                str(transaction.quantity)
+                if transaction.quantity is not None
+                else None
+            ),
+            "price": (
+                str(transaction.price)
+                if transaction.price is not None
+                else None
+            ),
+            "fees_and_commissions": str(
+                transaction.fees_and_commissions
+            ),
+        }
+
+        canonical = json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+
+        return hashlib.sha256(
+            canonical.encode("utf-8")
+        ).hexdigest()
+
+    def transaction_fingerprints(self) -> frozenset[str]:
+        """
+        Return fingerprints for all persisted transactions.
+
+        The result is immutable and suitable for duplicate detection.
+        """
+        return frozenset(
+            self.transaction_fingerprint(transaction)
+            for transaction in self.all_transactions()
+        )
+
+    def append_unique_transactions(
+        self,
+        dataset_id: str,
+        account: str,
+        source_file: str,
+        transactions: tuple[InvestmentTransaction, ...],
+    ) -> TransactionAppendResult:
+        """
+        Append only transactions not already present in the repository.
+
+        Duplicate detection operates at the transaction level rather than
+        the source-file level. This allows a later Schwab export to overlap
+        an earlier export without creating duplicate historical transactions.
+
+        Transactions already persisted are skipped.
+
+        Duplicate transactions appearing more than once in the incoming
+        batch are also skipped after their first occurrence.
+
+        When at least one new transaction exists, only those new transactions
+        are persisted in a new immutable TransactionDataset.
+
+        When every incoming transaction is a duplicate, no new dataset is
+        created and dataset_path is None.
+        """
+        normalized_dataset_id = dataset_id.strip()
+        normalized_account = account.strip()
+        normalized_source_file = Path(source_file).name.strip()
+
+        if not normalized_dataset_id:
+            raise ValueError("dataset_id cannot be blank.")
+
+        if not normalized_account:
+            raise ValueError("account cannot be blank.")
+
+        if not normalized_source_file:
+            raise ValueError("source_file cannot be blank.")
+
+        if not isinstance(transactions, tuple):
+            raise TypeError(
+                "transactions must be a tuple of InvestmentTransaction."
+            )
+
+        for transaction in transactions:
+            if not isinstance(transaction, InvestmentTransaction):
+                raise TypeError(
+                    "transactions must contain only "
+                    "InvestmentTransaction objects."
+                )
+
+            if transaction.account != normalized_account:
+                raise ValueError(
+                    "transaction account does not match the supplied account."
+                )
+
+            if transaction.source_file != normalized_source_file:
+                raise ValueError(
+                    "transaction source_file does not match the supplied "
+                    "source_file."
+                )
+
+        existing_fingerprints = self.transaction_fingerprints()
+
+        new_transactions: list[InvestmentTransaction] = []
+        seen_in_batch: set[str] = set()
+        duplicates_skipped = 0
+
+        for transaction in transactions:
+            fingerprint = self.transaction_fingerprint(transaction)
+
+            if (
+                fingerprint in existing_fingerprints
+                or fingerprint in seen_in_batch
+            ):
+                duplicates_skipped += 1
+                continue
+
+            seen_in_batch.add(fingerprint)
+            new_transactions.append(transaction)
+
+        if not new_transactions:
+            return TransactionAppendResult(
+                transactions_received=len(transactions),
+                transactions_added=0,
+                duplicates_skipped=duplicates_skipped,
+                dataset_path=None,
+                added_transactions=(),
+            )
+
+        dataset = TransactionDataset(
+            dataset_id=normalized_dataset_id,
+            account=normalized_account,
+            source_file=normalized_source_file,
+            transactions=tuple(new_transactions),
+        )
+
+        dataset_path = self.save_dataset(dataset)
+
+        return TransactionAppendResult(
+            transactions_received=len(transactions),
+            transactions_added=len(new_transactions),
+            duplicates_skipped=duplicates_skipped,
+            dataset_path=dataset_path,
+            added_transactions=tuple(new_transactions),
         )
