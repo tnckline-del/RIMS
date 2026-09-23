@@ -17,6 +17,12 @@ DATA_DIR = PROJECT_ROOT / "data"
 OUTPUT_DIR = PROJECT_ROOT / "output"
 
 
+# Persistent RIMS data directories
+SNAPSHOT_DIR = DATA_DIR / "snapshots"
+TRANSACTION_DIR = DATA_DIR / "transactions"
+IMPORT_OPERATION_DIR = DATA_DIR / "imports" / "operations"
+
+
 # Streamlit page configuration
 PAGE_TITLE = "RIMS"
 PAGE_ICON = "R"
