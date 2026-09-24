@@ -7,6 +7,10 @@ multiple persisted historical transaction datasets.
 Sprint 22D extends the repository with controlled append behavior and
 deterministic transaction-level duplicate detection.
 
+Sprint 22G extends controlled transaction-dataset provenance by recording
+the ImportOperation identifier that created a persisted dataset when
+available.
+
 Responsibilities:
     - Register transaction datasets with the repository.
     - Persist datasets through TransactionStore.
@@ -15,6 +19,7 @@ Responsibilities:
     - Combine transactions across accounts.
     - Filter historical transactions without modifying them.
     - Preserve account and source-file provenance.
+    - Preserve originating import-operation provenance when available.
     - Create deterministic transaction identities.
     - Append only previously unseen transactions.
 
@@ -139,6 +144,54 @@ class TransactionRepository:
             self.load_dataset(dataset_id)
             for dataset_id in self.dataset_ids()
         )
+
+    def find_dataset_by_import_id(
+        self,
+        import_id: str,
+    ) -> TransactionDataset | None:
+        """
+        Return the persisted transaction dataset created by an import.
+
+        The import identifier is controlled provenance established by the
+        controlled transaction import workflow. Legacy datasets without
+        import provenance are ignored.
+
+        Returns:
+            The matching TransactionDataset, or None when no dataset is
+            associated with the supplied import_id.
+
+        Raises:
+            ValueError: If import_id is blank or has surrounding whitespace.
+        """
+        if not isinstance(import_id, str):
+            raise TypeError("import_id must be a string.")
+
+        normalized_import_id = import_id.strip()
+
+        if not normalized_import_id:
+            raise ValueError("import_id cannot be blank.")
+
+        if import_id != normalized_import_id:
+            raise ValueError(
+                "import_id cannot have leading or trailing whitespace."
+            )
+
+        matches = [
+            dataset
+            for dataset in self.load_all_datasets()
+            if dataset.import_id == normalized_import_id
+        ]
+
+        if not matches:
+            return None
+
+        if len(matches) > 1:
+            raise ValueError(
+                "Multiple transaction datasets are associated with "
+                f"import_id '{normalized_import_id}'."
+            )
+
+        return matches[0]
 
     def all_transactions(self) -> tuple[InvestmentTransaction, ...]:
         """
@@ -326,7 +379,7 @@ class TransactionRepository:
 
     def accounts(self) -> tuple[str, ...]:
         """
-        Return all accounts represented in persisted transaction history.
+        Return distinct persisted account identifiers in sorted order.
         """
         return tuple(
             sorted(
@@ -339,7 +392,9 @@ class TransactionRepository:
 
     def symbols(self) -> tuple[str, ...]:
         """
-        Return all non-null security symbols represented in the history.
+        Return distinct persisted security symbols in sorted order.
+
+        Transactions without a symbol are excluded.
         """
         return tuple(
             sorted(
@@ -356,21 +411,21 @@ class TransactionRepository:
         transaction: InvestmentTransaction,
     ) -> str:
         """
-        Create a deterministic identity for one investment transaction.
+        Return a deterministic identity for one transaction.
 
-        The fingerprint represents the economic transaction itself and
-        deliberately excludes source_file because the same transaction
-        may legitimately appear in multiple Schwab exports.
-
-        Canonical JSON with sorted keys is hashed with SHA-256 so that
-        transaction identity remains deterministic across imports.
+        Source-file provenance is intentionally excluded from the
+        fingerprint so that the same financial transaction appearing in
+        overlapping Schwab exports is treated as a duplicate.
         """
-        if not isinstance(transaction, InvestmentTransaction):
+        if not isinstance(
+            transaction,
+            InvestmentTransaction,
+        ):
             raise TypeError(
                 "transaction must be an InvestmentTransaction."
             )
 
-        payload = {
+        canonical_data = {
             "account": transaction.account,
             "transaction_date": transaction.transaction_date.isoformat(),
             "action": transaction.action,
@@ -408,17 +463,17 @@ class TransactionRepository:
             ),
         }
 
-        canonical = json.dumps(
-            payload,
+        payload = json.dumps(
+            canonical_data,
             sort_keys=True,
             separators=(",", ":"),
-        )
+        ).encode("utf-8")
 
-        return hashlib.sha256(
-            canonical.encode("utf-8")
-        ).hexdigest()
+        return hashlib.sha256(payload).hexdigest()
 
-    def transaction_fingerprints(self) -> frozenset[str]:
+    def transaction_fingerprints(
+        self,
+    ) -> frozenset[str]:
         """
         Return fingerprints for all persisted transactions.
 
@@ -435,6 +490,7 @@ class TransactionRepository:
         account: str,
         source_file: str,
         transactions: tuple[InvestmentTransaction, ...],
+        import_id: str | None = None,
     ) -> TransactionAppendResult:
         """
         Append only transactions not already present in the repository.
@@ -453,6 +509,11 @@ class TransactionRepository:
 
         When every incoming transaction is a duplicate, no new dataset is
         created and dataset_path is None.
+
+        Args:
+            import_id:
+                Optional ImportOperation identifier associated with the
+                controlled import that created the dataset.
         """
         normalized_dataset_id = dataset_id.strip()
         normalized_account = account.strip()
@@ -466,6 +527,18 @@ class TransactionRepository:
 
         if not normalized_source_file:
             raise ValueError("source_file cannot be blank.")
+
+        if import_id is not None:
+            if not isinstance(import_id, str):
+                raise TypeError("import_id must be a string or None.")
+
+            if not import_id.strip():
+                raise ValueError("import_id cannot be blank.")
+
+            if import_id != import_id.strip():
+                raise ValueError(
+                    "import_id cannot have leading or trailing whitespace."
+                )
 
         if not isinstance(transactions, tuple):
             raise TypeError(
@@ -523,6 +596,7 @@ class TransactionRepository:
             account=normalized_account,
             source_file=normalized_source_file,
             transactions=tuple(new_transactions),
+            import_id=import_id,
         )
 
         dataset_path = self.save_dataset(dataset)

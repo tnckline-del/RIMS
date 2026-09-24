@@ -210,6 +210,32 @@ def test_successful_import_persists_transactions_and_operation(
 
     assert len(persisted) == 2
 
+    def test_successful_import_persists_import_id_provenance(
+        self,
+    ) -> None:
+        """A successful import records its operation ID on the new dataset."""
+        source_file = self.write_source_file()
+        validation_result = self.make_validation_result(
+            source_file=source_file,
+        )
+
+        result = self.service.import_transactions(validation_result)
+
+        self.assertEqual(
+            result.operation.import_id,
+            result.append_result.dataset_path.name
+            if result.append_result.dataset_path is not None
+            else None,
+        )
+
+        dataset = self.repository.load_dataset(
+            result.append_result.dataset_path.stem
+        )
+
+        self.assertEqual(
+            dataset.import_id,
+            result.operation.import_id,
+        )
 
 def test_import_result_uses_transactions_actually_added(
     tmp_path: Path,

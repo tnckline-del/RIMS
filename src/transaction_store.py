@@ -4,6 +4,9 @@ Persistent storage for RIMS investment transactions.
 Sprint 19E provides durable storage and retrieval for the normalized
 InvestmentTransaction model created in Sprint 19A.
 
+Sprint 22G extends transaction-dataset provenance by optionally recording
+the ImportOperation identifier that created a persisted dataset.
+
 Responsibilities:
     - Save transaction datasets as JSON.
     - Load previously saved transaction datasets.
@@ -11,6 +14,7 @@ Responsibilities:
     - Preserve Decimal and date values exactly.
     - Preserve enum classifications.
     - Preserve account and source-file provenance.
+    - Preserve originating import-operation provenance when available.
     - Prevent accidental overwriting of existing datasets.
 
 This module does not import Schwab CSV files and does not perform
@@ -40,12 +44,19 @@ from .transaction import (
 class TransactionDataset:
     """
     Metadata and transactions for one persisted historical dataset.
+
+    import_id:
+        Optional ImportOperation identifier associated with the import
+        that created this dataset. None is permitted for datasets created
+        before Sprint 22G or datasets created outside the controlled
+        import workflow.
     """
 
     dataset_id: str
     account: str
     source_file: str
     transactions: tuple[InvestmentTransaction, ...]
+    import_id: str | None = None
 
     @property
     def transaction_count(self) -> int:
@@ -237,6 +248,18 @@ class TransactionStore:
         if not dataset.source_file.strip():
             raise ValueError("source_file cannot be blank.")
 
+        if dataset.import_id is not None:
+            if not isinstance(dataset.import_id, str):
+                raise TypeError("import_id must be a string or None.")
+
+            if not dataset.import_id.strip():
+                raise ValueError("import_id cannot be blank.")
+
+            if dataset.import_id != dataset.import_id.strip():
+                raise ValueError(
+                    "import_id cannot have leading or trailing whitespace."
+                )
+
         for transaction in dataset.transactions:
             if not isinstance(
                 transaction,
@@ -266,6 +289,7 @@ class TransactionStore:
             "dataset_id": dataset.dataset_id,
             "account": dataset.account,
             "source_file": dataset.source_file,
+            "import_id": dataset.import_id,
             "transaction_count": dataset.transaction_count,
             "start_date": (
                 dataset.start_date.isoformat()
@@ -319,7 +343,7 @@ class TransactionStore:
     def _deserialize(
         data: dict[str, Any],
     ) -> TransactionDataset:
-        """Reconstruct a TransactionDataset from stored JSON data."""
+        """Reconstruct a TransactionDataset from stored JSON."""
         transactions = tuple(
             TransactionStore._deserialize_transaction(
                 transaction_data
@@ -332,6 +356,7 @@ class TransactionStore:
             account=data["account"],
             source_file=data["source_file"],
             transactions=transactions,
+            import_id=data.get("import_id"),
         )
 
         TransactionStore._validate_dataset(dataset)
@@ -399,16 +424,23 @@ def dataset_from_transactions(
     account: str,
     source_file: str,
     transactions: Iterable[InvestmentTransaction],
+    import_id: str | None = None,
 ) -> TransactionDataset:
     """
     Create a TransactionDataset from an iterable of transactions.
 
     The transactions are stored in their supplied order. The transaction
     model itself remains unchanged.
+
+    Args:
+        import_id:
+            Optional ImportOperation identifier associated with the
+            controlled import that created this dataset.
     """
     return TransactionDataset(
         dataset_id=dataset_id,
         account=account,
         source_file=source_file,
         transactions=tuple(transactions),
+        import_id=import_id,
     )

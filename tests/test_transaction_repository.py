@@ -6,6 +6,9 @@ and protection of persisted historical transaction data.
 
 Sprint 22D validates deterministic transaction fingerprints and
 controlled append behavior with transaction-level duplicate detection.
+
+Sprint 22G validates transaction-dataset provenance through the
+originating ImportOperation identifier.
 """
 
 from __future__ import annotations
@@ -240,6 +243,7 @@ class TestTransactionRepository(unittest.TestCase):
             self.repo.total_income(),
             Decimal("350.00"),
         )
+
         self.assertEqual(
             self.repo.total_recurring_income(),
             Decimal("350.00"),
@@ -252,6 +256,7 @@ class TestTransactionRepository(unittest.TestCase):
             "AAA",
             "100.00",
         )
+
         special = self.make_transaction(
             date(2025, 2, 15),
             "AAA",
@@ -268,6 +273,7 @@ class TestTransactionRepository(unittest.TestCase):
             self.repo.total_income(),
             Decimal("150.00"),
         )
+
         self.assertEqual(
             self.repo.total_recurring_income(),
             Decimal("100.00"),
@@ -353,6 +359,128 @@ class TestTransactionRepository(unittest.TestCase):
                 for transaction in transactions
             )
         )
+
+    def test_import_id_provenance_is_preserved(self) -> None:
+        """Dataset import provenance survives repository loading."""
+        transaction = self.make_transaction(
+            date(2025, 1, 15),
+            "AAA",
+            "100.00",
+        )
+
+        dataset = dataset_from_transactions(
+            "provenance-dataset",
+            self.ACCOUNT,
+            self.SOURCE_FILE,
+            (transaction,),
+            import_id="transactions-test-import",
+        )
+
+        self.repo.save_dataset(dataset)
+
+        loaded = self.repo.load_dataset("provenance-dataset")
+
+        self.assertEqual(
+            loaded.import_id,
+            "transactions-test-import",
+        )
+
+    def test_find_dataset_by_import_id_returns_matching_dataset(
+        self,
+    ) -> None:
+        """Return the dataset associated with a controlled import."""
+        transaction = self.make_transaction(
+            date(2025, 1, 15),
+            "AAA",
+            "100.00",
+        )
+
+        self.repo.append_unique_transactions(
+            dataset_id="provenance-import",
+            account=self.ACCOUNT,
+            source_file=self.SOURCE_FILE,
+            transactions=(transaction,),
+            import_id="transactions-test-import",
+        )
+
+        dataset = self.repo.find_dataset_by_import_id(
+            "transactions-test-import"
+        )
+
+        self.assertIsNotNone(dataset)
+        self.assertEqual(
+            dataset.dataset_id,
+            "provenance-import",
+        )
+        self.assertEqual(
+            dataset.import_id,
+            "transactions-test-import",
+        )
+
+    def test_find_dataset_by_import_id_returns_none_when_not_found(
+        self,
+    ) -> None:
+        """Return None when no dataset has the supplied import ID."""
+        dataset = self.repo.find_dataset_by_import_id(
+            "transactions-missing-import",
+        )
+
+        self.assertIsNone(dataset)
+
+    def test_find_dataset_by_import_id_rejects_blank_id(
+        self,
+    ) -> None:
+        """Reject a blank import identifier."""
+        with self.assertRaises(ValueError):
+            self.repo.find_dataset_by_import_id("")
+
+
+    def test_find_dataset_by_import_id_rejects_whitespace_id(
+        self,
+    ) -> None:
+        """Reject surrounding whitespace in an import identifier."""
+        with self.assertRaises(ValueError):
+            self.repo.find_dataset_by_import_id(
+                " transactions-test-import"
+            )
+
+
+    def test_find_dataset_by_import_id_rejects_duplicate_provenance(
+        self,
+    ) -> None:
+        """Reject multiple datasets claiming the same import ID."""
+        transaction_one = self.make_transaction(
+            date(2025, 1, 15),
+            "AAA",
+            "100.00",
+        )
+
+        transaction_two = self.make_transaction(
+            date(2025, 1, 16),
+            "BBB",
+            "200.00",
+        )
+
+        self.repo.append_unique_transactions(
+            dataset_id="provenance-import-one",
+            account=self.ACCOUNT,
+            source_file=self.SOURCE_FILE,
+            transactions=(transaction_one,),
+            import_id="transactions-duplicate-import",
+        )
+
+        self.repo.append_unique_transactions(
+            dataset_id="provenance-import-two",
+            account=self.ACCOUNT,
+            source_file=self.SOURCE_FILE,
+            transactions=(transaction_two,),
+            import_id="transactions-duplicate-import",
+        )
+
+        with self.assertRaises(ValueError):
+            self.repo.find_dataset_by_import_id(
+                "transactions-duplicate-import"
+            )
 
     # ------------------------------------------------------------------
     # Sprint 22D tests
@@ -445,6 +573,35 @@ class TestTransactionRepository(unittest.TestCase):
         self.assertEqual(
             self.repo.dataset_ids(),
             ("first-import",),
+        )
+
+    def test_append_unique_transactions_persists_import_id(
+        self,
+    ) -> None:
+        """A new dataset records the originating import operation."""
+        transaction = self.make_transaction(
+            date(2025, 1, 15),
+            "AAA",
+            "100.00",
+        )
+
+        result = self.repo.append_unique_transactions(
+            dataset_id="provenance-import",
+            account=self.ACCOUNT,
+            source_file=self.SOURCE_FILE,
+            transactions=(transaction,),
+            import_id="transactions-test-import",
+        )
+
+        self.assertTrue(result.dataset_created)
+
+        dataset = self.repo.load_dataset(
+            "provenance-import"
+        )
+
+        self.assertEqual(
+            dataset.import_id,
+            "transactions-test-import",
         )
 
     def test_append_unique_transactions_skips_existing_transactions(

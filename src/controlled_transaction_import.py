@@ -1,35 +1,32 @@
 """
-Controlled import service for validated Schwab transaction data.
+Controlled import of validated Schwab transaction data.
 
-Responsibilities:
-    - Accept validated Schwab transaction data.
-    - Protect against duplicate source-file imports.
-    - Append only previously unseen transactions.
-    - Preserve transaction account and date-range provenance.
-    - Track the import lifecycle through ImportOperation.
-    - Report only transactions actually added to RIMS.
-    - Never independently calculate or modify income history.
+Sprint 22B establishes the import-operation lifecycle.
 
-This module contains import orchestration only.
-Transaction persistence remains in TransactionRepository.
-Financial analysis remains in the existing RIMS services.
+Sprint 22D establishes controlled transaction persistence with
+transaction-level duplicate detection.
+
+Sprint 22G records the originating ImportOperation identifier on any
+transaction dataset created by the controlled import.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime
+import hashlib
 from pathlib import Path
 
 from app.services.import_service import TransactionsValidationResult
-from src.import_operation import (
+
+from .import_operation import (
     ImportFileType,
     ImportOperation,
     ImportStatus,
-    calculate_file_hash,
 )
-from src.import_operation_store import ImportOperationStore
-from src.transaction_repository import (
+from .import_operation_store import ImportOperationStore
+from .transaction import InvestmentTransaction
+from .transaction_repository import (
     TransactionAppendResult,
     TransactionRepository,
 )
@@ -37,7 +34,12 @@ from src.transaction_repository import (
 
 @dataclass(frozen=True, slots=True)
 class ControlledTransactionImportResult:
-    """Result of one controlled Schwab transaction import."""
+    """
+    Result of one controlled transaction import.
+
+    The result reports what the repository actually persisted rather than
+    merely what appeared in the source file.
+    """
 
     operation: ImportOperation
     source_transaction_count: int
@@ -51,14 +53,37 @@ class ControlledTransactionImportResult:
 
 
 class ControlledTransactionImportService:
-    """Safely incorporate validated Schwab transactions into RIMS."""
+    """
+    Execute the controlled import boundary for validated transactions.
+
+    The service owns import-operation lifecycle tracking and delegates
+    transaction persistence and duplicate detection to the repository.
+    """
 
     def __init__(
         self,
         import_operation_store: ImportOperationStore,
         transaction_repository: TransactionRepository,
     ) -> None:
-        """Create a controlled transaction import service."""
+        """
+        Initialize the controlled transaction import service.
+        """
+        if not isinstance(
+            import_operation_store,
+            ImportOperationStore,
+        ):
+            raise TypeError(
+                "import_operation_store must be an ImportOperationStore."
+            )
+
+        if not isinstance(
+            transaction_repository,
+            TransactionRepository,
+        ):
+            raise TypeError(
+                "transaction_repository must be a TransactionRepository."
+            )
+
         self.import_operation_store = import_operation_store
         self.transaction_repository = transaction_repository
 
@@ -68,30 +93,24 @@ class ControlledTransactionImportService:
         source_file: str | Path,
     ) -> ControlledTransactionImportResult:
         """
-        Import a successfully validated Schwab transaction file.
+        Import one validated Schwab transaction export.
 
-        The source file is hashed and checked for prior import before any
-        persistent transaction data is changed.
+        The source file is identified by SHA-256 hash. A previously
+        imported source file is rejected before any transaction persistence
+        occurs.
 
-        Transactions are appended through TransactionRepository, which
-        suppresses transaction-level duplicates.
-
-        The import operation is marked IMPORTED only after the transaction
-        append succeeds.
-
-        If transaction persistence fails, the operation is marked
-        IMPORT_FAILED and the original exception is re-raised.
+        A confirmed ImportOperation is persisted before transaction
+        persistence begins. If transaction persistence fails, the operation
+        is replaced with IMPORT_FAILED. If persistence succeeds, the
+        operation is replaced with IMPORTED.
         """
-        self._validate_input(validation_result, source_file)
+        self._validate_input(
+            validation_result,
+            source_file,
+        )
 
         path = Path(source_file)
-
-        if not path.is_file():
-            raise FileNotFoundError(
-                f"Transactions source file not found: {path}"
-            )
-
-        file_hash = calculate_file_hash(path)
+        file_hash = self._file_hash(path)
 
         existing_operation = (
             self.import_operation_store.find_by_file_hash(
@@ -101,19 +120,14 @@ class ControlledTransactionImportService:
 
         if existing_operation is not None:
             raise FileExistsError(
-                "Transactions file has already been imported: "
+                "Source file has already been imported: "
                 f"{existing_operation.import_id}"
             )
 
+        import_id = f"transactions-{file_hash[:16]}"
+
         import_result = validation_result.import_result
-
-        if import_result is None:
-            raise ValueError(
-                "Validated transactions result does not contain "
-                "an import result."
-            )
-
-        import_id = self._create_import_id(file_hash)
+        assert import_result is not None
 
         confirmed_operation = ImportOperation(
             import_id=import_id,
@@ -136,6 +150,7 @@ class ControlledTransactionImportService:
                     account=validation_result.account,
                     source_file=path.name,
                     transactions=import_result.transactions,
+                    import_id=import_id,
                 )
             )
         except Exception:
@@ -246,13 +261,13 @@ class ControlledTransactionImportService:
                 "transaction file."
             )
 
-        if not validation_result.account.strip():
-            raise ValueError(
-                "Validated transaction account cannot be blank."
-            )
-
     @staticmethod
-    def _create_import_id(file_hash: str) -> str:
-        """Create a deterministic transaction import identifier."""
-        return f"transactions-{file_hash[:16]}"
-    
+    def _file_hash(path: Path) -> str:
+        """Return the SHA-256 hash of a physical source file."""
+        digest = hashlib.sha256()
+
+        with path.open("rb") as file:
+            for chunk in iter(lambda: file.read(1024 * 1024), b""):
+                digest.update(chunk)
+
+        return digest.hexdigest()
