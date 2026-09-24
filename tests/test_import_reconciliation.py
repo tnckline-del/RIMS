@@ -98,6 +98,7 @@ def make_transaction(
     transaction_date: date = date(2026, 9, 1),
     symbol: str = "ARCC",
     amount: str = "100.00",
+    source_file: str = "test-transactions.csv",
 ) -> InvestmentTransaction:
     """Create a deterministic income transaction."""
     return InvestmentTransaction(
@@ -111,7 +112,7 @@ def make_transaction(
         income_type=IncomeType.DIVIDEND,
         income_character=IncomeCharacter.RECURRING,
         tax_character=TaxCharacter.UNKNOWN,
-        source_file="test-transactions.csv",
+        source_file=source_file,
     )
 
 
@@ -660,3 +661,162 @@ def test_reconciliation_result_reflects_persisted_status(
 
     assert result.operation == stored_operation
     assert result.operation.status is ImportStatus.RECONCILED
+
+
+def test_recover_transaction_after_later_import_preserves_both_datasets(
+    tmp_path: Path,
+) -> None:
+    """Recovery remains isolated after a later transaction import."""
+    processing_result = object()
+    coordinator = StubPostImportProcessingCoordinator(
+        processing_result=processing_result,
+    )
+    service, operation_store, _, transaction_repository = build_service(
+        tmp_path,
+        coordinator,
+    )
+
+    failed_import_id = "transactions-failed"
+    later_import_id = "transactions-later"
+
+    failed_operation = make_operation(
+        import_id=failed_import_id,
+        file_type=ImportFileType.TRANSACTIONS,
+        status=ImportStatus.RECONCILIATION_FAILED,
+    )
+
+    later_operation = make_operation(
+        import_id=later_import_id,
+        file_type=ImportFileType.TRANSACTIONS,
+        status=ImportStatus.RECONCILED,
+    )
+
+    operation_store.save(failed_operation)
+    operation_store.save(later_operation)
+
+    failed_transaction = make_transaction(
+        transaction_date=date(2026, 9, 1),
+        symbol="ARCC",
+        amount="100.00",
+        source_file="transactions-failed.csv",
+    )
+
+    later_transaction = make_transaction(
+        transaction_date=date(2026, 9, 2),
+        symbol="BXSL",
+        amount="200.00",
+        source_file="transactions-later.csv",
+    )
+
+    failed_append = transaction_repository.append_unique_transactions(
+        dataset_id="dataset-failed",
+        account=ACCOUNT,
+        source_file="transactions-failed.csv",
+        transactions=(failed_transaction,),
+        import_id=failed_import_id,
+    )
+
+    later_append = transaction_repository.append_unique_transactions(
+        dataset_id="dataset-later",
+        account=ACCOUNT,
+        source_file="transactions-later.csv",
+        transactions=(later_transaction,),
+        import_id=later_import_id,
+    )
+
+    assert failed_append.transactions_added == 1
+    assert later_append.transactions_added == 1
+
+    result = service.recover(failed_import_id)
+
+    assert result.reconciled is True
+    assert result.reconciliation_failed is False
+    assert result.operation.status is ImportStatus.RECONCILED
+    assert result.processing_result is processing_result
+
+    assert coordinator.process_calls == 1
+    assert coordinator.received_positions_import is None
+    assert coordinator.received_transactions_import is not None
+
+    recovered_import = coordinator.received_transactions_import
+
+    assert recovered_import.operation.import_id == failed_import_id
+    assert recovered_import.transactions_added == 1
+    assert (
+        recovered_import.append_result.added_transactions
+        == (failed_transaction,)
+    )
+
+    datasets = transaction_repository.load_all_datasets()
+
+    assert len(datasets) == 2
+
+    datasets_by_import_id = {
+        dataset.import_id: dataset
+        for dataset in datasets
+    }
+
+    assert datasets_by_import_id[failed_import_id].transactions == (
+        failed_transaction,
+    )
+    assert datasets_by_import_id[later_import_id].transactions == (
+        later_transaction,
+    )
+
+    stored_failed_operation = operation_store.load(
+        failed_import_id,
+    )
+
+    assert stored_failed_operation.status is ImportStatus.RECONCILED
+
+
+def test_recover_reconciled_transaction_is_safe_and_does_not_reprocess(
+    tmp_path: Path,
+) -> None:
+    """A reconciled operation is not processed again by recovery."""
+    processing_result = object()
+    coordinator = StubPostImportProcessingCoordinator(
+        processing_result=processing_result,
+    )
+    service, operation_store, _, transaction_repository = build_service(
+        tmp_path,
+        coordinator,
+    )
+
+    import_id = "transactions-already-reconciled"
+
+    operation = make_operation(
+        import_id=import_id,
+        file_type=ImportFileType.TRANSACTIONS,
+        status=ImportStatus.RECONCILED,
+    )
+
+    operation_store.save(operation)
+
+    transaction = make_transaction(
+        source_file="transactions-already-reconciled.csv",
+    )
+
+    append_result = transaction_repository.append_unique_transactions(
+        dataset_id="dataset-already-reconciled",
+        account=ACCOUNT,
+        source_file="transactions-already-reconciled.csv",
+        transactions=(transaction,),
+        import_id=import_id,
+    )
+
+    assert append_result.transactions_added == 1
+
+    with pytest.raises(ValueError, match="RECONCILIATION_FAILED"):
+        service.recover(import_id)
+
+    assert coordinator.process_calls == 0
+
+    stored_operation = operation_store.load(import_id)
+
+    assert stored_operation.status is ImportStatus.RECONCILED
+
+    datasets = transaction_repository.load_all_datasets()
+
+    assert len(datasets) == 1
+    assert datasets[0].transactions == (transaction,)
