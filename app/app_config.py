@@ -21,6 +21,7 @@ OUTPUT_DIR = PROJECT_ROOT / "output"
 SNAPSHOT_DIR = DATA_DIR / "snapshots"
 TRANSACTION_DIR = DATA_DIR / "transactions"
 IMPORT_OPERATION_DIR = DATA_DIR / "imports" / "operations"
+FORWARD_INCOME_DIR = DATA_DIR / "forward_income"
 
 
 # Streamlit page configuration

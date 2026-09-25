@@ -593,6 +593,42 @@ def test_non_imported_operation_cannot_be_reconciled(
     assert stored_operation.status is status
 
 
+def test_recover_positions_processing_failure_preserves_failed_status(
+    tmp_path: Path,
+) -> None:
+    """A failed recovery leaves the import in RECONCILIATION_FAILED."""
+    coordinator = StubPostImportProcessingCoordinator(
+        error=RuntimeError("recovery failed"),
+    )
+    service, operation_store, snapshot_store, _ = build_service(
+        tmp_path,
+        coordinator,
+    )
+
+    positions_result = make_positions_result(
+        tmp_path,
+        status=ImportStatus.RECONCILIATION_FAILED,
+    )
+
+    operation_store.save(
+        positions_result.operation,
+    )
+    snapshot_store.save(
+        positions_result.snapshot,
+    )
+
+    with pytest.raises(RuntimeError, match="recovery failed"):
+        service.recover(POSITIONS_IMPORT_ID)
+
+    assert coordinator.process_calls == 1
+
+    stored_operation = operation_store.load(
+        POSITIONS_IMPORT_ID,
+    )
+
+    assert stored_operation.status is ImportStatus.RECONCILIATION_FAILED
+
+
 def test_no_import_result_is_rejected(
     tmp_path: Path,
 ) -> None:

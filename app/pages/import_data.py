@@ -10,6 +10,7 @@ from typing import Any
 import streamlit as st
 
 from app.app_config import (
+    FORWARD_INCOME_DIR,
     IMPORT_OPERATION_DIR,
     SNAPSHOT_DIR,
     TRANSACTION_DIR,
@@ -21,7 +22,11 @@ from src.controlled_positions_import import (
 from src.controlled_transaction_import import (
     ControlledTransactionImportService,
 )
+from src.import_health import ImportHealthService
+from src.import_operation import ImportStatus
 from src.import_operation_store import ImportOperationStore
+from src.import_reconciliation import ImportReconciliationService
+from src.post_import_processing import PostImportProcessingCoordinator
 from src.snapshot_store import SnapshotStore
 from src.transaction_repository import TransactionRepository
 
@@ -55,11 +60,32 @@ def render_import_data() -> None:
     st.divider()
 
     import_service = ImportService()
-    positions_importer, transactions_importer = _build_import_services()
+    (
+        positions_importer,
+        transactions_importer,
+        reconciliation_service,
+        health_service,
+    ) = _build_application_services()
+
+    import_operation_store = ImportOperationStore(
+        IMPORT_OPERATION_DIR,
+    )
+
+    _render_import_health(health_service)
+
+    st.divider()
+
+    _render_import_history(
+        import_operation_store=import_operation_store,
+        reconciliation_service=reconciliation_service,
+    )
+
+    st.divider()
 
     _render_positions_section(
         import_service=import_service,
         positions_importer=positions_importer,
+        reconciliation_service=reconciliation_service,
     )
 
     st.divider()
@@ -67,14 +93,17 @@ def render_import_data() -> None:
     _render_transactions_section(
         import_service=import_service,
         transactions_importer=transactions_importer,
+        reconciliation_service=reconciliation_service,
     )
 
 
-def _build_import_services() -> tuple[
+def _build_application_services() -> tuple[
     ControlledPositionsImportService,
     ControlledTransactionImportService,
+    ImportReconciliationService,
+    ImportHealthService,
 ]:
-    """Build controlled import services using application storage paths."""
+    """Build the application services used by the import workflow."""
     import_operation_store = ImportOperationStore(
         IMPORT_OPERATION_DIR,
     )
@@ -93,12 +122,35 @@ def _build_import_services() -> tuple[
         transaction_repository=transaction_repository,
     )
 
-    return positions_importer, transactions_importer
+    post_import_processing_coordinator = PostImportProcessingCoordinator(
+        positions_import_service=positions_importer,
+        transaction_repository=transaction_repository,
+        forward_income_storage_path=str(FORWARD_INCOME_DIR),
+    )
+
+    reconciliation_service = ImportReconciliationService(
+        import_operation_store=import_operation_store,
+        snapshot_store=snapshot_store,
+        transaction_repository=transaction_repository,
+        post_import_processing_coordinator=post_import_processing_coordinator,
+    )
+
+    health_service = ImportHealthService(
+        import_operation_store=import_operation_store,
+    )
+
+    return (
+        positions_importer,
+        transactions_importer,
+        reconciliation_service,
+        health_service,
+    )
 
 
 def _render_positions_section(
     import_service: ImportService,
     positions_importer: ControlledPositionsImportService,
+    reconciliation_service: ImportReconciliationService,
 ) -> None:
     """Render the positions validation and import workflow."""
     st.header("Schwab Positions")
@@ -151,6 +203,7 @@ def _render_positions_section(
                 ):
                     _import_positions(
                         positions_importer=positions_importer,
+                        reconciliation_service=reconciliation_service,
                     )
 
     import_result = st.session_state.get(
@@ -229,6 +282,7 @@ def _validate_positions_file(
 
 def _import_positions(
     positions_importer: ControlledPositionsImportService,
+    reconciliation_service: ImportReconciliationService,
 ) -> None:
     """Import the validated positions file through the controlled service."""
     filename = st.session_state.get(POSITIONS_FILE_NAME)
@@ -265,6 +319,18 @@ def _import_positions(
         file_bytes
     )
     st.session_state.pop(POSITIONS_VALIDATION, None)
+
+    reconciliation_result = reconciliation_service.reconcile(
+        positions_import=result,
+    )
+
+    if reconciliation_result.reconciled:
+        st.success("Positions import completed and reconciled.")
+    else:
+        st.error(
+            "Positions import completed, but post-import reconciliation "
+            "failed. Use Recover in Import History."
+        )
 
 
 def _display_positions_result(result: Any) -> None:
@@ -360,6 +426,7 @@ def _display_positions_import_result(result: Any) -> None:
 def _render_transactions_section(
     import_service: ImportService,
     transactions_importer: ControlledTransactionImportService,
+    reconciliation_service: ImportReconciliationService,
 ) -> None:
     """Render the transaction validation and import workflow."""
     st.header("Schwab Transactions")
@@ -424,6 +491,7 @@ def _render_transactions_section(
                 ):
                     _import_transactions(
                         transactions_importer=transactions_importer,
+                        reconciliation_service=reconciliation_service,
                     )
 
     import_result = st.session_state.get(
@@ -523,6 +591,7 @@ def _validate_transactions_file(
 
 def _import_transactions(
     transactions_importer: ControlledTransactionImportService,
+    reconciliation_service: ImportReconciliationService,
 ) -> None:
     """Import validated transactions through the controlled service."""
     filename = st.session_state.get(TRANSACTION_FILE_NAME)
@@ -559,8 +628,20 @@ def _import_transactions(
     st.session_state[TRANSACTION_IMPORT_RESULT] = result
     st.session_state[TRANSACTION_IMPORTED_FILE] = _calculate_uploaded_file_hash(
         file_bytes
-   )
+    )
     st.session_state.pop(TRANSACTION_VALIDATION, None)
+
+    reconciliation_result = reconciliation_service.reconcile(
+        transactions_import=result,
+    )
+
+    if reconciliation_result.reconciled:
+        st.success("Transaction import completed and reconciled.")
+    else:
+        st.error(
+            "Transaction import completed, but post-import reconciliation "
+            "failed. Use Recover in Import History."
+        )
 
 
 def _display_transactions_result(result: Any) -> None:
@@ -638,6 +719,123 @@ def _display_transaction_import_result(result: Any) -> None:
         st.info(
             "No new transactions were added. All transactions in "
             "the file were already present in RIMS."
+        )
+
+
+def _render_import_health(
+    health_service: ImportHealthService,
+) -> None:
+    """Render the current persisted import health."""
+    health = health_service.get_health()
+
+    st.subheader("Import Health")
+
+    if health.total_operations == 0:
+        st.info(health.summary)
+        return
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric("Total Imports", health.total_operations)
+
+    with col2:
+        st.metric("Reconciled", health.reconciled_operations)
+
+    with col3:
+        st.metric(
+            "Reconciliation Issues",
+            health.reconciliation_failed_operations,
+        )
+
+    if health.reconciliation_failed_operations:
+        st.warning(health.summary)
+    elif health.all_reconciled:
+        st.success(health.summary)
+    else:
+        st.info(health.summary)
+
+
+def _render_import_history(
+    import_operation_store: ImportOperationStore,
+    reconciliation_service: ImportReconciliationService,
+) -> None:
+    """Render persisted import operations and recovery actions."""
+    operations = import_operation_store.list_operations()
+
+    st.subheader("Import History")
+
+    if not operations:
+        st.info("No import operations recorded.")
+        return
+
+    operations = sorted(
+        operations,
+        key=lambda operation: operation.imported_at,
+        reverse=True,
+    )
+
+    for operation in operations:
+        st.write(f"**{operation.source_file}**")
+        st.write(
+            f"Type: {operation.file_type.value}  |  "
+            f"Status: {operation.status.value}"
+        )
+
+        if operation.account:
+            st.write(f"Account: {operation.account}")
+
+        st.write(
+            f"Imported: "
+            f"{operation.imported_at:%m/%d/%Y %I:%M %p}"
+        )
+
+        if operation.status is ImportStatus.RECONCILIATION_FAILED:
+            st.warning("This import requires reconciliation.")
+
+            if st.button(
+                "Recover",
+                key=f"recover_import_{operation.import_id}",
+                type="primary",
+            ):
+                _recover_import(
+                    import_id=operation.import_id,
+                    reconciliation_service=reconciliation_service,
+                )
+
+        elif operation.status is ImportStatus.RECONCILED:
+            st.success("Reconciled")
+
+        elif operation.status is ImportStatus.IMPORTED:
+            st.info("Imported — pending reconciliation")
+
+        elif operation.status is ImportStatus.IMPORT_FAILED:
+            st.error("Import failed")
+
+        elif operation.status is ImportStatus.VALIDATION_FAILED:
+            st.error("Validation failed")
+
+        st.divider()
+
+
+def _recover_import(
+    import_id: str,
+    reconciliation_service: ImportReconciliationService,
+) -> None:
+    """Recover one failed import operation."""
+    try:
+        result = reconciliation_service.recover(import_id)
+    except Exception as exc:
+        st.error(f"Import recovery failed: {exc}")
+        return
+
+    if result.reconciled:
+        st.success("Import recovery completed and the import is reconciled.")
+        st.rerun()
+    else:
+        st.error(
+            "Import recovery did not complete successfully. "
+            "Review the import history and try again."
         )
 
 
