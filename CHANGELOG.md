@@ -1651,6 +1651,308 @@ Sprint 21 complete.
 
 ---
 
+## Sprint 22 — Controlled Schwab Import, Processing, Reconciliation, and Recovery
+
+### Sprint 22A — Import / Update Architecture & Data Model
+
+**Status:** Complete — Design
+
+**Objective:**
+Define the architecture, data model, integrity rules, duplicate-protection rules, and user workflow required to safely incorporate validated Schwab data into persistent RIMS financial records.
+
+**Design:**
+Established the controlled import workflow:
+
+    Select File
+        ↓
+    Validate
+        ↓
+    Review Validation Results
+        ↓
+    Confirm Import
+        ↓
+    Import / Update RIMS
+        ↓
+    Preserve Historical Data
+        ↓
+    Update Current Portfolio
+        ↓
+    Persist Transactions
+        ↓
+    Reconcile
+        ↓
+    Refresh RIMS Analysis
+
+Established the architectural boundary between Schwab file validation, controlled persistence, post-import processing, and financial analysis.
+
+**Completed:**
+- Defined the controlled import architecture and data model.
+- Defined import integrity and duplicate-protection requirements.
+- Defined preservation of historical data.
+- Defined current-portfolio update rules.
+- Defined explicit user confirmation before persistent import.
+- Established the foundation for independent positions and transaction import workflows.
+
+Sprint 22A design complete.
+
+
+### Sprint 22B — Import Operation Foundation
+
+**Status:** Complete
+
+**Objective:**
+Establish the durable import-operation record required to track the lifecycle of controlled Schwab imports.
+
+**Implementation:**
+- Added `ImportOperation` as the durable lifecycle record.
+- Added `ImportOperationStore` for persistent import-operation storage.
+- Added source-file SHA-256 identity.
+- Established the import lifecycle/status model.
+- Added persistence and duplicate source-file protection.
+- Established the import-operation foundation without changing portfolio, transaction, income, or Dashboard behavior.
+
+**Files added/modified:**
+- `src/import_operation.py`
+- `src/import_operation_store.py`
+- `tests/test_import_operation.py`
+- `tests/test_import_operation_store.py`
+
+**Testing:**
+- 41 new tests passed.
+- 266 total tests passed.
+
+Sprint 22B complete.
+
+
+### Sprint 22C — Controlled Positions Import
+
+**Status:** Complete
+
+**Objective:**
+Establish the controlled Schwab positions-import workflow and safely incorporate validated positions data into persistent RIMS snapshots and the current portfolio.
+
+**Implementation:**
+- Added controlled positions import processing.
+- Added source-file duplicate protection.
+- Added positions import-operation lifecycle tracking.
+- Persisted historical positions snapshots.
+- Updated the current portfolio only when the imported reporting date advanced the current snapshot.
+- Prevented older imports from moving the current portfolio backward.
+- Prevented failed imports from becoming the current portfolio.
+- Preserved the separation between positions data and transaction/income data.
+
+**Files added/modified:**
+- `src/controlled_positions_import.py`
+- `tests/test_controlled_positions_import.py`
+
+**Testing:**
+- 13 focused tests passed.
+- 285 total tests passed.
+
+Sprint 22C complete.
+
+
+### Sprint 22D — Controlled Transaction Import
+
+**Status:** Complete
+
+**Objective:**
+Safely incorporate validated Schwab transaction data into persistent RIMS transaction history without creating duplicate transactions or allowing the import process to perform financial analysis.
+
+**Implementation:**
+- Added the controlled transaction-import layer.
+- Added deterministic transaction fingerprints based on the economic transaction rather than source file.
+- Added transaction-level duplicate detection against historical transactions.
+- Added duplicate suppression within an incoming batch.
+- Added controlled append behavior.
+- Added source-file SHA-256 duplicate protection.
+- Added durable import-operation tracking.
+- Added reporting of transactions actually added.
+- Added reporting of income and recurring-income transactions actually added.
+- Distinguished transaction-level duplicates from duplicate source-file processing.
+- Allowed all-duplicate transaction imports to complete successfully without creating a new transaction dataset.
+- Preserved source-file provenance on persisted transactions.
+- Kept financial analysis outside the controlled import service.
+
+**Testing:**
+Controlled transaction import behavior was covered by focused tests and integrated with the existing RIMS test suite.
+
+Sprint 22D complete.
+
+
+### Sprint 22E — Import UI
+
+**Status:** Complete
+
+**Objective:**
+Establish the Streamlit user interface for the controlled Schwab import workflow.
+
+**Implementation:**
+- Added the Import Data workflow for Schwab positions files.
+- Added the Import Data workflow for Schwab transaction files.
+- Added RIMS account selection for transaction imports.
+- Separated validation from the persistent import action.
+- Required explicit user confirmation before import.
+- Preserved validated source-file data across Streamlit reruns.
+- Added independent positions and transaction import workflows.
+- Displayed validation results before import.
+- Displayed actual controlled-import results after import.
+- Kept financial calculations, duplicate detection, and persistence within the appropriate backend services.
+- Added temporary source-file handling without moving uploaded files into permanent RIMS data directories.
+- Added positions import results distinguishing current-portfolio advancement from historical-only snapshots.
+- Added transaction import results for transactions received, transactions added, duplicates skipped, income transactions added, and recurring-income transactions added.
+- Wired authoritative storage paths through `app.app_config`.
+
+Sprint 22E complete.
+
+
+### Sprint 22F — Post-Import Processing
+
+**Status:** Complete
+
+**Objective:**
+Establish the post-import processing layer that coordinates existing RIMS analytical services after successful controlled imports.
+
+**Implementation:**
+- Added post-import processing as an orchestration layer rather than a new financial-calculation engine.
+- Used the existing `TransactionRepository` as the authoritative transaction source.
+- Integrated existing `IncomeAggregator`.
+- Integrated existing `HistoricalIncomeAnalyzer`.
+- Integrated existing `CurrentIncome`.
+- Integrated existing `ForwardIncomeManager`.
+- Used the authoritative persistent RIMS datasets after import.
+- Processed positions and transaction imports according to the analytical layers affected by each import type.
+- Avoided duplicating existing financial calculations.
+- Added structured processing results and failure behavior.
+- Established the handoff to Sprint 22G reconciliation.
+- Ensured duplicate-only transaction imports do not create duplicate income or unnecessary transaction-driven analysis.
+- Preserved independent positions and transaction workflows.
+
+Sprint 22F complete.
+
+
+### Sprint 22G — Import Reconciliation and Recovery
+
+**Status:** Complete
+
+**Objective:**
+Complete the controlled import workflow by adding durable post-import reconciliation, failure tracking, and recovery.
+
+**Implementation:**
+- Established each uploaded CSV as an independent `ImportOperation`.
+- Added durable `IMPORTED`, `RECONCILED`, and `RECONCILIATION_FAILED` lifecycle semantics.
+- Distinguished successful source-data persistence from successful downstream financial processing.
+- Added reconciliation processing using authoritative persisted RIMS data.
+- Added recovery of failed reconciliation without re-importing the original CSV.
+- Preserved successfully imported source data when post-import processing fails.
+- Prevented reconciliation failures from becoming `IMPORT_FAILED`.
+- Allowed subsequent independent imports after a reconciliation failure.
+- Preserved separate lifecycle records for positions and transaction imports.
+- Derived import health from persisted `ImportOperation` records.
+- Kept financial calculations within the existing analytical services.
+- Established recovery against the current authoritative transaction repository and positions snapshot rather than reconstructing historical state from the original CSV.
+
+**Lifecycle:**
+
+    IMPORTED
+        ↓
+    post-import processing
+       /           \
+    success        failure
+      ↓               ↓
+ RECONCILED   RECONCILIATION_FAILED
+                      ↓
+                   recovery
+                      ↓
+                 RECONCILED
+
+Sprint 22G complete.
+
+
+### Sprint 22H — Import Health and Recovery UI
+
+**Status:** Complete
+
+**Objective:**
+Complete the user-facing portion of the controlled import reconciliation workflow by exposing persisted import health, import history, reconciliation failures, and recovery through the Import Data page.
+
+**Implementation:**
+- Wired `ControlledPositionsImportService` into the application workflow.
+- Wired `ControlledTransactionImportService` into the application workflow.
+- Integrated `PostImportProcessingCoordinator`.
+- Integrated `ImportReconciliationService`.
+- Integrated `ImportHealthService`.
+- Shared the existing `ImportOperationStore`, `SnapshotStore`, and `TransactionRepository`.
+- Added Import Health display showing:
+  - Total Imports
+  - Reconciled
+  - Reconciliation Issues
+- Added Import History in reverse chronological order.
+- Displayed lifecycle-specific import states.
+- Added recovery controls for `RECONCILIATION_FAILED` operations.
+- Implemented recovery using the persisted `ImportOperation` identifier.
+- Ensured recovery does not re-import the original CSV.
+- Added user-facing success and failure messages.
+- Preserved failure isolation between independent import operations.
+- Preserved successfully imported positions or transactions when reconciliation fails.
+- Added retry behavior through the Import Data page.
+- Fixed transaction import temporary-file handling so the validated source filename is preserved when the controlled transaction importer verifies the physical source file.
+
+**Testing and Acceptance:**
+- Full test suite: 374 tests passed.
+- Focused transaction import tests: 10 passed.
+- Focused Import Data tests: 27 passed.
+- `git diff --check`: clean.
+- Real Schwab positions import:
+  - 44 holdings.
+  - Market-value difference: $0.
+  - Cost-basis difference: $0.
+  - Import reconciled successfully.
+- Real Schwab transaction import:
+  - 505 transactions.
+  - 482 income transactions.
+  - 505 transactions added.
+  - 0 duplicates.
+  - 482 income transactions added.
+  - 416 recurring-income transactions added.
+  - Import reconciled successfully.
+- Import Health after the real positions and transaction imports:
+  - Total Imports: 2.
+  - Reconciled: 2.
+  - Reconciliation Issues: 0.
+- Verified that the failed initial transaction import was caused by temporary-file filename handling and corrected the UI temporary-file implementation while preserving the controlled importer's source-file validation.
+- Verified cleanup of the manual transaction-import test data and restoration of the original transaction dataset.
+
+Sprint 22H complete.
+
+### Sprint 22 Overall
+
+Sprint 22 established the controlled Schwab import workflow from architecture and durable lifecycle tracking through positions and transaction persistence, user-facing import controls, post-import analysis, reconciliation, failure isolation, and recovery.
+
+The completed workflow is:
+
+    Schwab file
+        ↓
+    Validation
+        ↓
+    Explicit user confirmation
+        ↓
+    Controlled import
+        ↓
+    Persistent authoritative RIMS data
+        ↓
+    Post-import processing
+        ↓
+    Reconciliation
+        ↓
+    Import Health / Import History
+        ↓
+    Recovery when required
+
+Sprint 22 complete.
+
+---
+
 ## Upcoming Development
 
 The next development phase should build on the validated application workflow by adding the controlled **import/update process** that follows successful validation.
