@@ -974,6 +974,7 @@ def test_import_transactions_success_records_hash_and_clears_validation(
         def import_transactions(self, **kwargs):
             assert kwargs["validation_result"] is validation_result
             assert kwargs["source_file"].exists()
+            assert kwargs["source_file"].name == "transactions.csv"
             return import_result
 
     class SuccessfulReconciliationService:

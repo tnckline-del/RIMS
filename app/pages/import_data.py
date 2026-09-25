@@ -863,15 +863,12 @@ def _write_temporary_file(
     category: str,
 ) -> Path:
     """Write uploaded bytes to a temporary CSV file."""
-    suffix = Path(filename).suffix or ".csv"
+    temporary_directory = Path(tempfile.gettempdir())
+    temporary_path = temporary_directory / filename
 
-    with tempfile.NamedTemporaryFile(
-        prefix=f"rims_{category}_",
-        suffix=suffix,
-        delete=False,
-    ) as temporary_file:
-        temporary_file.write(file_bytes)
-        return Path(temporary_file.name)
+    temporary_path.write_bytes(file_bytes)
+
+    return temporary_path
 
 
 def main() -> None:
