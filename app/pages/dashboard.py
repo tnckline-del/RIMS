@@ -4,9 +4,24 @@ from __future__ import annotations
 
 import streamlit as st
 
+from app.app_config import (
+    IMPORT_OPERATION_DIR,
+    SNAPSHOT_DIR,
+    TRANSACTION_DIR,
+)
+from app.services.dashboard_service import create_dashboard_service
+
 
 def render_dashboard() -> None:
-    """Render the initial RIMS Dashboard."""
+    """Render the RIMS Dashboard."""
+    dashboard_service = create_dashboard_service(
+        import_operation_path=IMPORT_OPERATION_DIR,
+        snapshot_path=SNAPSHOT_DIR,
+        transaction_path=TRANSACTION_DIR,
+    )
+
+    portfolio = dashboard_service.load_current_portfolio()
+
     st.title("Dashboard")
 
     st.caption(
@@ -20,20 +35,46 @@ def render_dashboard() -> None:
     portfolio_col1, portfolio_col2 = st.columns(2)
 
     with portfolio_col1:
-        st.metric("Portfolio Value", "Not Connected")
+        if portfolio is not None:
+            st.metric(
+                "Portfolio Value",
+                f"${portfolio.total_market_value:,.2f}",
+            )
+        else:
+            st.metric("Portfolio Value", "Not Connected")
 
     with portfolio_col2:
-        st.metric("Holdings", "Not Connected")
+        if portfolio is not None:
+            st.metric(
+                "Holdings",
+                f"{portfolio.holding_count:,}",
+            )
+        else:
+            st.metric("Holdings", "Not Connected")
 
     st.header("Retirement Income")
 
-    income_col1, income_col2 = st.columns(2)
+    income_col1, income_col2, income_col3 = st.columns(3)
+
+    income_composition = dashboard_service.trailing_income_composition()
 
     with income_col1:
-        st.metric("Forward Annual Income", "Not Connected")
+        st.metric(
+            "Trailing 12-Month Income",
+            f"${income_composition.total:,.2f}",
+        )
 
     with income_col2:
-        st.metric("Income Target", "Not Connected")
+        st.metric(
+            "Dividends",
+            f"${income_composition.dividends:,.2f}",
+        )
+
+    with income_col3:
+        st.metric(
+            "Interest",
+            f"${income_composition.interest:,.2f}",
+        )
 
     st.header("Attention Required")
 
