@@ -1953,21 +1953,28 @@ Sprint 22 complete.
 
 ---
 
-## Upcoming Development
 
-The next development phase should build on the validated application workflow by adding the controlled **import/update process** that follows successful validation.
+## Sprint 23 — Main Application Integration and Dashboard
 
-The next sprint should **not** automatically overwrite the current portfolio or historical records. It should establish the controlled transition:
+**Status:** In Progress
 
-```text
-Select File
-    ↓
-Validate
-    ↓
-Review Validation Results
-    ↓
-Import / Update RIMS
-    ↓
-Preserve Historical Data
-    ↓
-Update Current Portfolio
+**Objective:**
+Integrate authoritative RIMS data and existing analytical services into the main application Dashboard while establishing the Dashboard as the central application integration surface.
+
+**Completed:**
+- Created `DashboardService` as the application-service layer for Dashboard data.
+- Connected the Dashboard to the authoritative current portfolio Snapshot.
+- Added current portfolio market value and holding count.
+- Added trailing 12-month recurring income.
+- Added trailing income composition for dividends and interest.
+- Connected Dashboard import health to the existing `ImportHealthService`.
+- Added transaction-data connection status.
+- Kept forward annual income off the Dashboard because no forward-income assumptions are currently populated.
+- Verified Dashboard changes with the full test suite.
+- Verified Dashboard operation against imported Schwab positions and transaction data.
+- Confirmed `git diff --check` is clean.
+
+**Current Direction:**
+- Dashboard development is paused at a useful first-stage implementation.
+- Detailed income and portfolio analysis will be developed next.
+- Future Dashboard additions will be determined from needs identified during detailed analysis rather than adding metrics speculatively.
