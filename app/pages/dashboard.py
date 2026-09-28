@@ -21,6 +21,7 @@ def render_dashboard() -> None:
     )
 
     portfolio = dashboard_service.load_current_portfolio()
+    import_health = dashboard_service.get_import_health()
 
     st.title("Dashboard")
 
@@ -78,22 +79,33 @@ def render_dashboard() -> None:
 
     st.header("Attention Required")
 
-    st.info(
-        "Income and portfolio review items will appear here when the "
-        "underlying RIMS services are connected."
-    )
+    if import_health.reconciliation_failed_operations:
+        st.warning(import_health.summary)
+    elif not import_health.all_reconciled:
+        st.info(import_health.summary)
+    else:
+        st.success("No import reconciliation issues.")
 
     st.header("System Status")
 
     status_col1, status_col2 = st.columns(2)
 
     with status_col1:
-        st.write("**Portfolio Data:** Not Connected")
-        st.write("**Transaction Data:** Not Connected")
+        if portfolio is not None:
+            st.write("**Portfolio Data:** Connected")
+        else:
+            st.write("**Portfolio Data:** Not Connected")
+
+        if dashboard_service.has_transaction_data():
+            st.write("**Transaction Data:** Connected")
+        else:
+            st.write("**Transaction Data:** Not Connected")
 
     with status_col2:
         st.write("**Forward Income:** Not Connected")
-        st.write("**Last Update:** Not Connected")
+        st.write(
+            f"**Import Health:** {import_health.summary}"
+        )
 
 
 def main() -> None:

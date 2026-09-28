@@ -2,19 +2,21 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from datetime import timedelta
+from decimal import Decimal
 from pathlib import Path
 
 from src.controlled_positions_import import (
     ControlledPositionsImportService,
 )
+from src.import_health import ImportHealth, ImportHealthService
+from src.import_operation import ImportFileType, ImportStatus
 from src.import_operation_store import ImportOperationStore
 from src.portfolio import Portfolio
-from src.transaction_repository import TransactionRepository
 from src.snapshot_store import SnapshotStore
 from src.transaction import IncomeType
-from datetime import timedelta
-from dataclasses import dataclass
-from decimal import Decimal
+from src.transaction_repository import TransactionRepository
 
 @dataclass(frozen=True, slots=True)
 class TrailingIncomeComposition:
@@ -33,10 +35,10 @@ class DashboardService:
     """Provide authoritative current portfolio data to the Dashboard."""
 
     def __init__(
-    self,
-    import_operation_store: ImportOperationStore,
-    snapshot_store: SnapshotStore,
-    transaction_repository: TransactionRepository,
+        self,
+        import_operation_store: ImportOperationStore,
+        snapshot_store: SnapshotStore,
+        transaction_repository: TransactionRepository,
 ) -> None:
         """Initialize the Dashboard service."""
         if not isinstance(
@@ -56,6 +58,11 @@ class DashboardService:
         )
 
         self._transaction_repository = transaction_repository
+        self._import_operation_store = import_operation_store
+
+        self._import_health_service = ImportHealthService(
+           import_operation_store,
+        )
 
         if not isinstance(snapshot_store, SnapshotStore):
             raise TypeError(
@@ -65,6 +72,23 @@ class DashboardService:
         self._positions_import_service = ControlledPositionsImportService(
             import_operation_store=import_operation_store,
             snapshot_store=snapshot_store,
+        )
+
+    def get_import_health(self) -> ImportHealth:
+        """Return authoritative persisted import health."""
+        return self._import_health_service.get_health()
+
+    def has_transaction_data(self) -> bool:
+        """Return True when persisted transaction data has been imported."""
+        operations = self._import_operation_store.list_operations()
+
+        return any(
+            operation.file_type is ImportFileType.TRANSACTIONS
+            and operation.status in {
+                ImportStatus.IMPORTED,
+                ImportStatus.RECONCILED,
+            }
+            for operation in operations
         )
 
     def load_current_portfolio(self) -> Portfolio | None:
