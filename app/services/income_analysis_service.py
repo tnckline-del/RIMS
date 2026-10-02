@@ -3,7 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import timedelta
 from decimal import Decimal
+from pathlib import Path
+
+from src.controlled_positions_import import ControlledPositionsImportService
+from src.current_income import CurrentIncome, CurrentIncomeResult
+from src.import_operation_store import ImportOperationStore
+from src.income_portfolio import IncomePortfolio
+from src.portfolio import Portfolio
+from src.snapshot_store import SnapshotStore
+from src.transaction import InvestmentTransaction
+from src.transaction_repository import TransactionRepository
 
 
 @dataclass(frozen=True, slots=True)
@@ -17,7 +28,8 @@ class IncomeHoldingAnalysis:
     all_history_recurring_income: Decimal
     trailing_12_month_recurring_income: Decimal
     income_weight: Decimal
-    income_vs_portfolio_weight: Decimal
+    unrealized_gain_loss: Decimal
+    unrealized_gain_loss_percent: Decimal
     trailing_12_month_yield: Decimal
     yield_on_cost: Decimal
 
@@ -34,18 +46,10 @@ class IncomeAnalysisResult:
     all_history_symbolless_income: Decimal
     holdings_with_income: int
     holdings_without_income: int
-
-from datetime import timedelta
-
-from src.controlled_positions_import import ControlledPositionsImportService
-from src.current_income import CurrentIncome, CurrentIncomeResult
-from src.import_operation_store import ImportOperationStore
-from src.income_portfolio import IncomePortfolio
-from src.portfolio import Portfolio
-from src.snapshot_store import SnapshotStore
-from src.transaction import InvestmentTransaction
-from src.transaction_repository import TransactionRepository
-
+    largest_income_holding_symbol: str | None
+    largest_income_holding_amount: Decimal
+    largest_income_holding_weight: Decimal
+    top_five_income_weight: Decimal
 
 class IncomeAnalysisService:
     """Application service for current portfolio income analysis."""
@@ -168,8 +172,16 @@ class IncomeAnalysisService:
                 if total_ttm_income
                 else Decimal("0")
             )
-            income_vs_portfolio_weight = (
-                income_weight - portfolio_weight
+            unrealized_gain_loss = market_value - cost_basis
+
+            unrealized_gain_loss_percent = (
+                (
+                    (market_value / cost_basis)
+                    - Decimal("1")
+                )
+                * Decimal("100")
+                if cost_basis
+                else Decimal("0")
             )
             trailing_12_month_yield = (
                 (ttm_income_amount / market_value) * Decimal("100")
@@ -191,7 +203,10 @@ class IncomeAnalysisService:
                     all_history_recurring_income=all_history_income_amount,
                     trailing_12_month_recurring_income=ttm_income_amount,
                     income_weight=income_weight,
-                    income_vs_portfolio_weight=income_vs_portfolio_weight,
+                    unrealized_gain_loss=unrealized_gain_loss,
+                    unrealized_gain_loss_percent=(
+                        unrealized_gain_loss_percent
+                    ),
                     trailing_12_month_yield=trailing_12_month_yield,
                     yield_on_cost=yield_on_cost,
                 )
@@ -221,11 +236,27 @@ class IncomeAnalysisService:
             portfolio,
             transactions,
         )
-
         holdings = self.build_holding_analysis(
             portfolio,
             all_history_income,
             ttm_income,
+        )
+        income_ranked_holdings = sorted(
+            holdings,
+            key=lambda holding: holding.trailing_12_month_recurring_income,
+            reverse=True,
+        )
+        largest_income_holding = (
+            income_ranked_holdings[0]
+            if income_ranked_holdings
+            else None
+        )
+        top_five_income_weight = sum(
+            (
+                holding.income_weight
+                for holding in income_ranked_holdings[:5]
+            ),
+            Decimal("0"),
         )
 
         return IncomeAnalysisResult(
@@ -258,4 +289,42 @@ class IncomeAnalysisService:
             holdings_without_income=len(
                 all_history_income.holdings_without_income
             ),
+            largest_income_holding_symbol=(
+                largest_income_holding.symbol
+                if largest_income_holding is not None
+                else None
+            ),
+            largest_income_holding_amount=(
+                largest_income_holding.trailing_12_month_recurring_income
+                if largest_income_holding is not None
+                else Decimal("0")
+            ),
+            largest_income_holding_weight=(
+                largest_income_holding.income_weight
+                if largest_income_holding is not None
+                else Decimal("0")
+            ),
+            top_five_income_weight=top_five_income_weight,
         )
+
+def create_income_analysis_service(
+    import_operation_path: str | Path,
+    snapshot_path: str | Path,
+    transaction_path: str | Path,
+) -> IncomeAnalysisService:
+    """Create an IncomeAnalysisService using RIMS persistence locations."""
+    import_operation_store = ImportOperationStore(
+        Path(import_operation_path),
+    )
+    snapshot_store = SnapshotStore(
+        Path(snapshot_path),
+    )
+    transaction_repository = TransactionRepository.from_path(
+        Path(transaction_path),
+    )
+
+    return IncomeAnalysisService(
+        import_operation_store=import_operation_store,
+        snapshot_store=snapshot_store,
+        transaction_repository=transaction_repository,
+    )

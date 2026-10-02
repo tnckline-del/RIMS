@@ -7,6 +7,7 @@ import streamlit as st
 from app.app_config import LAYOUT, PAGE_ICON, PAGE_TITLE
 from app.pages.dashboard import render_dashboard
 from app.pages.import_data import render_import_data
+from app.pages.income_analysis import render_income_analysis
 
 
 def configure_page() -> None:
@@ -25,6 +26,11 @@ def render_application() -> None:
             render_dashboard,
             title="Dashboard",
             url_path="dashboard",
+        ),
+        st.Page(
+            render_income_analysis,
+            title="Income Analysis",
+            url_path="income-analysis",
         ),
         st.Page(
             render_import_data,

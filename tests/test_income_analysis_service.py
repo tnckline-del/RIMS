@@ -60,9 +60,11 @@ def test_holding_analysis_calculates_pflt_income_metrics():
         Decimal("0.0001")
     ) == Decimal("4.1620")
 
-    assert pflt.income_vs_portfolio_weight.quantize(
+    assert pflt.unrealized_gain_loss == Decimal("-6385.38")
+
+    assert pflt.unrealized_gain_loss_percent.quantize(
         Decimal("0.0001")
-    ) == Decimal("2.0390")
+    ) == Decimal("-29.4091")
 
     assert pflt.trailing_12_month_yield.quantize(
         Decimal("0.0001")
@@ -120,3 +122,20 @@ def test_current_holdings_income_counts():
     assert result is not None
     assert result.holdings_with_income == 41
     assert result.holdings_without_income == 1
+
+def test_income_concentration_identifies_largest_and_top_five_holdings():
+    service = create_income_analysis_service()
+
+    result = service.analyze()
+
+    assert result is not None
+    assert result.largest_income_holding_symbol == "PFLT"
+    assert result.largest_income_holding_amount == Decimal("2166.17")
+
+    assert result.largest_income_holding_weight.quantize(
+        Decimal("0.0001")
+    ) == Decimal("4.1620")
+
+    assert result.top_five_income_weight.quantize(
+        Decimal("0.0001")
+    ) == Decimal("19.2263")

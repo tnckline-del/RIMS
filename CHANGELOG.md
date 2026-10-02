@@ -1973,8 +1973,18 @@ Integrate authoritative RIMS data and existing analytical services into the main
 - Verified Dashboard changes with the full test suite.
 - Verified Dashboard operation against imported Schwab positions and transaction data.
 - Confirmed `git diff --check` is clean.
+- Created `IncomeAnalysisService` as the application-service layer for current portfolio income analysis.
+- Added the Income Analysis page to the main application navigation.
+- Added current portfolio income summary including portfolio value, trailing 12-month recurring income, income yield, and holdings with or without recorded income.
+- Added income concentration analysis identifying the largest income-producing holding and the combined share of income from the top five holdings.
+- Added holding-by-holding analysis including market value, portfolio weight, cost basis, unrealized gain/loss, historical recurring income, trailing 12-month income, income share, trailing income yield, and yield on cost.
+- Added explanatory help definitions for Income Analysis table columns.
+- Verified Income Analysis with focused tests and the full test suite.
+- Confirmed the full test suite passes with 382 tests.
+- Confirmed `git diff --check` is clean.
 
 **Current Direction:**
 - Dashboard development is paused at a useful first-stage implementation.
-- Detailed income and portfolio analysis will be developed next.
+- Income Analysis has been completed as the first detailed portfolio analysis.
+- Detailed portfolio analysis will continue based on needs identified during analysis rather than adding metrics speculatively.
 - Future Dashboard additions will be determined from needs identified during detailed analysis rather than adding metrics speculatively.
